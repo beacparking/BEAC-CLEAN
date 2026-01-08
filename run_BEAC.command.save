@@ -1,0 +1,6 @@
+#!/bin/zsh
+
+cd "$HOME/Desktop/BEAC"
+
+/Users/yeshiwangchk/Desktop/BEAC/venv/bin/python app.py
+
