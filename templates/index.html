@@ -1,39 +1,83 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>BEAC Vehicle QR</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="UTF-8">
+    <title>BEAC Vehicle QR System</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f7f7f7;
+            text-align: center;
+            padding-top: 60px;
+        }
+
+        h2 {
+            margin-bottom: 30px;
+        }
+
+        input {
+            padding: 10px;
+            margin: 8px;
+            width: 260px;
+            font-size: 16px;
+        }
+
+        button {
+            padding: 10px 25px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        .error {
+            color: red;
+            margin-top: 15px;
+        }
+
+        .qr-box {
+            margin-top: 30px;
+        }
+
+        img {
+            margin-top: 15px;
+            border: 1px solid #ccc;
+            padding: 10px;
+            background: white;
+        }
+    </style>
 </head>
-<body style="font-family:Arial; text-align:center; padding:30px;">
+<body>
 
-<h2>🚗 BEAC Vehicle QR System</h2>
+    <h2>🚗 BEAC Vehicle QR System</h2>
 
-<form method="POST" action="/generate">
-    <input
-        type="text"
-        name="vehicle_number"
-        placeholder="Enter Vehicle Number"
-        required
-        style="padding:10px; width:220px;"
-    ><br><br>
+    <form method="POST">
+        <input 
+            type="text" 
+            name="vehicle_no" 
+            placeholder="Enter Vehicle Number" 
+            required
+        >
+        <br>
 
-    <input
-        type="date"
-        name="expiry_date"
-        required
-        style="padding:10px; width:220px;"
-    ><br><br>
+        <input 
+            type="date" 
+            name="date" 
+            required
+        >
+        <br><br>
 
-    <button type="submit" style="padding:10px 20px;">
-        Generate QR
-    </button>
-</form>
+        <button type="submit">Generate QR</button>
+    </form>
 
-{% if qr_image %}
-    <h3>📷 Generated QR</h3>
-    <img src="{{ qr_image }}" width="250">
-    <p>Scan this QR to verify vehicle</p>
-{% endif %}
+    {% if error %}
+        <div class="error">{{ error }}</div>
+    {% endif %}
+
+    {% if qr_image %}
+        <div class="qr-box">
+            <h3>Generated QR Code</h3>
+            <img src="{{ qr_image }}" width="250">
+        </div>
+    {% endif %}
 
 </body>
 </html>
