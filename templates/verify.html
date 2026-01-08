@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>BEAC Vehicle Verification</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: #f4f4f4;
+            text-align: center;
+            padding-top: 50px;
+        }
+        .card {
+            background: white;
+            width: 350px;
+            margin: auto;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        .valid {
+            color: green;
+            font-weight: bold;
+        }
+        .expired {
+            color: red;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h2>🚗 BEAC Vehicle Verification</h2>
+
+    <p><strong>Vehicle Number:</strong><br>{{ vehicle_no }}</p>
+
+    <p><strong>Expiry Date:</strong><br>{{ expiry_date }}</p>
+
+    <p class="{{ 'valid' if status == 'VALID' else 'expired' }}">
+        Status: {{ status }}
+    </p>
+</div>
+
+</body>
+</html>

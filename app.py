@@ -10,26 +10,34 @@ os.makedirs(QR_FOLDER, exist_ok=True)
 
 @app.route("/", methods=["GET", "POST"])
 def index():
-    qr_image = None
-    error = None
-
+    qr_file = None
     if request.method == "POST":
-        vehicle_no = request.form.get("vehicle_no")
-        date = request.form.get("date")
+        vehicle_no = request.form["vehicle_no"].strip()
+        expiry_date = request.form["expiry_date"]
 
-        if not vehicle_no or not date:
-            error = "All fields are required"
-        else:
-            filename = f"{vehicle_no}_{datetime.now().strftime('%Y%m%d%H%M%S')}.png"
-            filepath = os.path.join(QR_FOLDER, filename)
+        verify_url = request.url_root + f"verify/{vehicle_no}/{expiry_date}"
 
-            data = f"Vehicle Number: {vehicle_no}\nDate: {date}"
-            img = qrcode.make(data)
-            img.save(filepath)
+        qr = qrcode.make(verify_url)
+        qr_file = f"{vehicle_no}.png"
+        qr.save(os.path.join(QR_FOLDER, qr_file))
 
-            qr_image = filepath
+    return render_template("index.html", qr_file=qr_file)
 
-    return render_template("index.html", qr_image=qr_image, error=error)
+
+@app.route("/verify/<vehicle_no>/<expiry_date>")
+def verify(vehicle_no, expiry_date):
+    today = datetime.today().date()
+    expiry = datetime.strptime(expiry_date, "%Y-%m-%d").date()
+
+    status = "VALID" if expiry >= today else "EXPIRED"
+
+    return render_template(
+        "verify.html",
+        vehicle_no=vehicle_no,
+        expiry_date=expiry_date,
+        status=status
+    )
+
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=10000)
+    app.run(debug=True)
