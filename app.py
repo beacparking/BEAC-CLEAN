@@ -11,17 +11,26 @@ os.makedirs(QR_FOLDER, exist_ok=True)
 @app.route("/", methods=["GET", "POST"])
 def index():
     qr_file = None
+    error = None
+
     if request.method == "POST":
-        vehicle_no = request.form["vehicle_no"].strip()
-        expiry_date = request.form["expiry_date"]
+        try:
+            vehicle_no = request.form.get("vehicle_no")
+            expiry_date = request.form.get("expiry_date")
 
-        verify_url = request.url_root + f"verify/{vehicle_no}/{expiry_date}"
+            if not vehicle_no or not expiry_date:
+                error = "Vehicle number and expiry date are required"
+            else:
+                verify_url = request.url_root + f"verify/{vehicle_no}/{expiry_date}"
 
-        qr = qrcode.make(verify_url)
-        qr_file = f"{vehicle_no}.png"
-        qr.save(os.path.join(QR_FOLDER, qr_file))
+                qr = qrcode.make(verify_url)
+                qr_file = f"{vehicle_no}.png"
+                qr.save(os.path.join(QR_FOLDER, qr_file))
 
-    return render_template("index.html", qr_file=qr_file)
+        except Exception as e:
+            error = str(e)
+
+    return render_template("index.html", qr_file=qr_file, error=error)
 
 
 @app.route("/verify/<vehicle_no>/<expiry_date>")
@@ -40,4 +49,4 @@ def verify(vehicle_no, expiry_date):
 
 
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run()

@@ -1,84 +1,51 @@
-<!-- force redeploy -->
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
     <title>BEAC Vehicle QR System</title>
     <style>
         body {
             font-family: Arial, sans-serif;
-            background: #f7f7f7;
+            background: #f4f4f4;
             text-align: center;
-            padding-top: 60px;
+            padding-top: 50px;
         }
-
-        h2 {
-            margin-bottom: 30px;
-        }
-
-        input {
+        input, button {
             padding: 10px;
-            margin: 8px;
-            width: 260px;
-            font-size: 16px;
+            margin: 5px;
+            width: 250px;
         }
-
-        button {
-            padding: 10px 25px;
-            font-size: 16px;
-            cursor: pointer;
-        }
-
-        .error {
-            color: red;
-            margin-top: 15px;
-        }
-
-        .qr-box {
-            margin-top: 30px;
-        }
-
         img {
-            margin-top: 15px;
+            margin-top: 20px;
             border: 1px solid #ccc;
             padding: 10px;
             background: white;
+        }
+        .error {
+            color: red;
+            font-weight: bold;
         }
     </style>
 </head>
 <body>
 
-    <h2>🚗 BEAC Vehicle QR System</h2>
+<h2>🚗 BEAC Vehicle QR System</h2>
 
-    <form method="POST">
-        <input 
-            type="text" 
-            name="vehicle_no" 
-            placeholder="Enter Vehicle Number" 
-            required
-        >
-        <br>
+<form method="POST">
+    <input type="text" name="vehicle_no" placeholder="Enter Vehicle Number" required>
+    <br>
+    <input type="date" name="expiry_date" required>
+    <br>
+    <button type="submit">Generate QR</button>
+</form>
 
-        <input 
-            type="date" 
-            name="date" 
-            required
-        >
-        <br><br>
+{% if error %}
+    <p class="error">{{ error }}</p>
+{% endif %}
 
-        <button type="submit">Generate QR</button>
-    </form>
-
-    {% if error %}
-        <div class="error">{{ error }}</div>
-    {% endif %}
-
-    {% if qr_image %}
-        <div class="qr-box">
-            <h3>Generated QR Code</h3>
-            <img src="{{ qr_image }}" width="250">
-        </div>
-    {% endif %}
+{% if qr_file %}
+    <h3>QR Generated</h3>
+    <img src="{{ url_for('static', filename='qr/' + qr_file) }}" width="250">
+{% endif %}
 
 </body>
 </html>
