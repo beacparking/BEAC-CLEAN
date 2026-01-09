@@ -1,142 +1,84 @@
-from flask import Flask, render_template, request, redirect, url_for, abort
+from flask import Flask, render_template, request
 import sqlite3
 import qrcode
 import os
-from datetime import datetime, date
+from datetime import datetime
 
 app = Flask(__name__)
 
-DB_PATH = "vehicles.db"
+DB = "vehicles.db"
 QR_FOLDER = "static/qr"
-QR_VERSION = 1  # 🔒 QR VERSION LOCK
-
 os.makedirs(QR_FOLDER, exist_ok=True)
 
-# -----------------------------
-# DATABASE INIT (VERY IMPORTANT)
-# -----------------------------
-def get_db():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
-    return conn
-
+# ---------- DATABASE INIT ----------
 def init_db():
-    conn = get_db()
-    cursor = conn.cursor()
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS vehicles (
-            vehicle TEXT PRIMARY KEY,
-            expiry TEXT,
-            version INTEGER,
-            created_at TEXT
-        )
-    """)
-    conn.commit()
-    conn.close()
+    with sqlite3.connect(DB) as conn:
+        c = conn.cursor()
+        c.execute("""
+            CREATE TABLE IF NOT EXISTS vehicles (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                vehicle TEXT NOT NULL,
+                expiry TEXT NOT NULL,
+                created_at TEXT NOT NULL
+            )
+        """)
+        conn.commit()
 
-init_db()  # 👈 THIS FIXES YOUR ERROR
+init_db()
 
-# -----------------------------
-# HOME / GENERATE QR
-# -----------------------------
+# ---------- HOME + QR GENERATION ----------
 @app.route("/", methods=["GET", "POST"])
 def index():
+    qr_image = None
+    verify_url = None
+
     if request.method == "POST":
-        vehicle = request.form.get("vehicle", "").strip().upper()
-        expiry = request.form.get("expiry", "").strip()
+        vehicle = request.form["vehicle"].strip()
+        expiry = request.form["expiry"]
 
-        if not vehicle or not expiry:
-            abort(400)
+        with sqlite3.connect(DB) as conn:
+            c = conn.cursor()
+            c.execute(
+                "INSERT INTO vehicles (vehicle, expiry, created_at) VALUES (?, ?, ?)",
+                (vehicle, expiry, datetime.utcnow().isoformat())
+            )
+            token_id = c.lastrowid
+            conn.commit()
 
-        conn = get_db()
-        cursor = conn.cursor()
+        verify_url = f"https://beac-vehicle-qr-clean.onrender.com/verify/{token_id}"
 
-        cursor.execute("""
-            INSERT OR REPLACE INTO vehicles (vehicle, expiry, version, created_at)
-            VALUES (?, ?, ?, ?)
-        """, (
-            vehicle,
-            expiry,
-            QR_VERSION,
-            datetime.utcnow().isoformat()
-        ))
+        qr_path = f"{QR_FOLDER}/{token_id}.png"
+        qrcode.make(verify_url).save(qr_path)
 
-        conn.commit()
-        conn.close()
+        qr_image = qr_path
 
-        verify_url = url_for(
-            "verify",
-            vehicle=vehicle,
-            version=QR_VERSION,
-            _external=True
-        )
+    return render_template("index.html", qr_image=qr_image, verify_url=verify_url)
 
-        qr_img = qrcode.make(verify_url)
-        qr_path = os.path.join(QR_FOLDER, f"{vehicle}_v{QR_VERSION}.png")
-        qr_img.save(qr_path)
-
-        return render_template(
-            "index.html",
-            qr_image=qr_path,
-            verify_url=verify_url
-        )
-
-    return render_template("index.html")
-
-# -----------------------------
-# LOCKED VERIFY ROUTE
-# -----------------------------
-@app.route("/verify/<vehicle>/v<int:version>")
-def verify(vehicle, version):
-    conn = get_db()
-    cursor = conn.cursor()
-
-    cursor.execute("""
-        SELECT * FROM vehicles
-        WHERE vehicle = ? AND version = ?
-    """, (vehicle.upper(), version))
-
-    row = cursor.fetchone()
-    conn.close()
+# ---------- VERIFY BY TOKEN ----------
+@app.route("/verify/<int:token>")
+def verify(token):
+    with sqlite3.connect(DB) as conn:
+        c = conn.cursor()
+        c.execute("SELECT vehicle, expiry FROM vehicles WHERE id=?", (token,))
+        row = c.fetchone()
 
     if not row:
-        abort(404)
+        return "Invalid QR", 404
 
-    expiry_date = datetime.strptime(row["expiry"], "%Y-%m-%d").date()
-    today = date.today()
+    vehicle, expiry = row
+    today = datetime.today().date()
+    expiry_date = datetime.strptime(expiry, "%Y-%m-%d").date()
 
-    if today > expiry_date:
-        status = "EXPIRED"
-        warning = "This QR has expired."
-    elif (expiry_date - today).days <= 2:
-        status = "VALID (EXPIRING SOON)"
-        warning = "⚠ This QR will expire soon."
-    else:
-        status = "VALID"
-        warning = None
+    status = "VALID" if expiry_date >= today else "EXPIRED"
 
     return render_template(
         "verify.html",
         vehicle=vehicle,
-        expiry=row["expiry"],
+        expiry=expiry,
         status=status,
-        warning=warning,
-        version=version
+        token=token
     )
 
-# -----------------------------
-# BLOCK EVERYTHING ELSE
-# -----------------------------
-@app.errorhandler(404)
-def not_found(e):
-    return "QR route not found or invalid.", 404
-
-@app.errorhandler(500)
-def server_error(e):
-    return "Internal server error. Please contact administrator.", 500
-
-# -----------------------------
-# RUN (LOCAL ONLY)
-# -----------------------------
+# ---------- RUN ----------
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run()
