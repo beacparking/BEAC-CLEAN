@@ -1,29 +1,63 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
     <title>BEAC Vehicle Verification</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <style>
         body {
             font-family: Arial, sans-serif;
-            background: #f4f4f4;
-            text-align: center;
-            padding-top: 50px;
+            background: #f2f2f2;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
         }
+
         .card {
-            background: white;
-            width: 350px;
-            margin: auto;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            background: #ffffff;
+            padding: 25px 30px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
+            width: 320px;
+            text-align: center;
         }
+
+        h2 {
+            margin-top: 0;
+        }
+
+        .label {
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        .value {
+            margin-bottom: 10px;
+        }
+
         .valid {
             color: green;
             font-weight: bold;
         }
+
         .expired {
             color: red;
             font-weight: bold;
+        }
+
+        .warning {
+            color: #d35400;
+            font-size: 0.9em;
+            margin-top: 8px;
+        }
+
+        .footer {
+            margin-top: 15px;
+            font-size: 0.8em;
+            color: #666;
         }
     </style>
 </head>
@@ -32,13 +66,34 @@
 <div class="card">
     <h2>🚗 BEAC Vehicle Verification</h2>
 
-    <p><strong>Vehicle Number:</strong><br>{{ vehicle_no }}</p>
+    <div class="label">Vehicle Number:</div>
+    <div class="value">{{ vehicle }}</div>
 
-    <p><strong>Expiry Date:</strong><br>{{ expiry_date }}</p>
+    <div class="label">Expiry Date:</div>
+    <div class="value">{{ expiry }}</div>
 
-    <p class="{{ 'valid' if status == 'VALID' else 'expired' }}">
-        Status: {{ status }}
-    </p>
+    <div class="label">Status:</div>
+    <div class="value">
+        {% if status == "VALID" %}
+            <span class="valid">VALID</span>
+        {% else %}
+            <span class="expired">EXPIRED</span>
+        {% endif %}
+    </div>
+
+    {% if status == "VALID" %}
+        <div class="warning">✔ This vehicle is authorized</div>
+    {% else %}
+        <div class="warning">⚠ This QR has expired</div>
+    {% endif %}
+
+    <hr>
+
+    <div class="footer">
+        Token ID: {{ token }} <br>
+        QR Version: v1 <br>
+        Verified by BEAC System
+    </div>
 </div>
 
 </body>
