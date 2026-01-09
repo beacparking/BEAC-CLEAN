@@ -1,78 +1,24 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
     <title>BEAC Vehicle QR System</title>
-    <style>
-        body {
-            background: #f5f6fa;
-            font-family: Arial, sans-serif;
-            text-align: center;
-            padding-top: 80px;
-        }
-        .card {
-            background: white;
-            width: 360px;
-            margin: auto;
-            padding: 25px;
-            border-radius: 10px;
-            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-        }
-        input, button {
-            width: 100%;
-            padding: 10px;
-            margin-top: 12px;
-            font-size: 15px;
-        }
-        button {
-            background: #2563eb;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-        }
-        button:hover {
-            background: #1e40af;
-        }
-        img {
-            margin-top: 20px;
-            width: 220px;
-        }
-        a {
-            display: block;
-            margin-top: 10px;
-            word-break: break-all;
-        }
-    </style>
 </head>
 <body>
+    <h2>BEAC Vehicle QR System</h2>
 
-<div class="card">
-    <h2>🚗 BEAC Vehicle QR System</h2>
+    <a href="/logout">Logout</a>
+    <br><br>
 
-    <!-- 🔒 IMPORTANT: method="POST" -->
-    <form method="POST" action="/">
-        <input
-            type="text"
-            name="vehicle"
-            placeholder="Vehicle Number"
-            required
-        >
-
-        <input
-            type="date"
-            name="expiry"
-            required
-        >
-
+    <form method="POST" action="/dashboard">
+        <input type="text" name="vehicle" placeholder="Vehicle Number" required><br><br>
+        <input type="date" name="expiry" required><br><br>
         <button type="submit">Generate QR</button>
     </form>
 
-    {% if qr_image %}
-        <img src="/{{ qr_image }}" alt="QR Code">
-        <a href="{{ verify_url }}" target="_blank">{{ verify_url }}</a>
+    {% if qr_url %}
+        <h3>QR Generated</h3>
+        <img src="/static/qr.png" width="200"><br>
+        <a href="{{ qr_url }}" target="_blank">{{ qr_url }}</a>
     {% endif %}
-</div>
-
 </body>
 </html>

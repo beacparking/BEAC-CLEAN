@@ -1,23 +1,23 @@
-from flask import Flask, render_template, request, redirect, session, url_for
+from flask import Flask, render_template, request, redirect, url_for, session, abort
 import sqlite3
 import qrcode
 import os
-from datetime import date
+from datetime import datetime
 
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "beac-secret-key")
 
-DB = "vehicles.db"
+DB_FILE = "vehicles.db"
 
-# ------------------ DB INIT ------------------
+# ---------------- DATABASE INIT ----------------
 def init_db():
-    conn = sqlite3.connect(DB)
+    conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()
     c.execute("""
         CREATE TABLE IF NOT EXISTS vehicles (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            vehicle TEXT UNIQUE,
-            expiry TEXT
+            vehicle TEXT NOT NULL,
+            expiry TEXT NOT NULL
         )
     """)
     conn.commit()
@@ -25,72 +25,68 @@ def init_db():
 
 init_db()
 
-# ------------------ LOGIN ------------------
-@app.route("/")
-def home():
-    if session.get("logged_in"):
-        return redirect("/dashboard")
+# ---------------- LOGIN ----------------
+@app.route("/", methods=["GET", "POST"])
+def login():
+    if request.method == "POST":
+        username = request.form.get("username")
+        password = request.form.get("password")
+
+        # SIMPLE ADMIN CREDS (can move to env later)
+        if username == "admin" and password == "admin123":
+            session["admin"] = True
+            return redirect("/dashboard")
+        else:
+            return render_template("login.html", error="Invalid credentials")
+
     return render_template("login.html")
 
-@app.route("/login", methods=["POST"])
-def login():
-    username = request.form["username"]
-    password = request.form["password"]
-
-    # CHANGE THESE LATER
-    if username == "admin" and password == "beac123":
-        session["logged_in"] = True
-        return redirect("/dashboard")
-
-    return render_template("login.html", error="Invalid credentials")
-
-@app.route("/logout")
-def logout():
-    session.clear()
-    return redirect("/")
-
-# ------------------ DASHBOARD (ADMIN ONLY) ------------------
+# ---------------- DASHBOARD ----------------
 @app.route("/dashboard", methods=["GET", "POST"])
 def dashboard():
-    if not session.get("logged_in"):
+    if not session.get("admin"):
         return redirect("/")
 
     qr_url = None
 
     if request.method == "POST":
-        vehicle = request.form["vehicle"]
-        expiry = request.form["expiry"]
+        vehicle = request.form.get("vehicle")
+        expiry = request.form.get("expiry")
 
-        conn = sqlite3.connect(DB)
+        conn = sqlite3.connect(DB_FILE)
         c = conn.cursor()
         c.execute(
-            "INSERT OR REPLACE INTO vehicles (vehicle, expiry) VALUES (?, ?)",
+            "INSERT INTO vehicles (vehicle, expiry) VALUES (?, ?)",
             (vehicle, expiry)
         )
+        vid = c.lastrowid
         conn.commit()
         conn.close()
 
-        qr_url = f"{request.host_url}verify/{vehicle}"
+        qr_url = request.host_url + f"verify/{vid}"
 
         img = qrcode.make(qr_url)
         img.save("static/qr.png")
 
     return render_template("index.html", qr_url=qr_url)
 
-# ------------------ VERIFY (PUBLIC) ------------------
-@app.route("/verify/<vehicle>")
-def verify(vehicle):
-    conn = sqlite3.connect(DB)
+# ---------------- VERIFY (LOCKED) ----------------
+@app.route("/verify/<int:vid>")
+def verify(vid):
+    conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()
-    c.execute("SELECT expiry FROM vehicles WHERE vehicle = ?", (vehicle,))
+    c.execute("SELECT vehicle, expiry FROM vehicles WHERE id = ?", (vid,))
     row = c.fetchone()
     conn.close()
 
     if not row:
-        return "❌ INVALID QR", 404
+        abort(404)
 
-    expiry = row[0]
-    status = "VALID" if expiry >= str(date.today()) else "EXPIRED"
+    vehicle, expiry = row
+    today = datetime.today().date()
+    expiry_date = datetime.strptime(expiry, "%Y-%m-%d").date()
+
+    status = "VALID" if expiry_date >= today else "EXPIRED"
 
     return render_template(
         "verify.html",
@@ -99,6 +95,12 @@ def verify(vehicle):
         status=status
     )
 
-# ------------------
+# ---------------- LOGOUT ----------------
+@app.route("/logout")
+def logout():
+    session.clear()
+    return redirect("/")
+
+# ---------------- RUN ----------------
 if __name__ == "__main__":
-    app.run()
+    app.run(debug=True)
