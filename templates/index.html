@@ -1,41 +1,47 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
     <title>BEAC Vehicle QR System</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
         body {
-            background:#f7f7f7;
+            background: #f5f6fa;
             font-family: Arial, sans-serif;
-            display:flex;
-            justify-content:center;
-            align-items:center;
-            height:100vh;
+            text-align: center;
+            padding-top: 80px;
         }
         .card {
-            background:white;
-            padding:25px;
-            border-radius:10px;
-            box-shadow:0 4px 10px rgba(0,0,0,0.1);
-            width:320px;
-            text-align:center;
+            background: white;
+            width: 360px;
+            margin: auto;
+            padding: 25px;
+            border-radius: 10px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.1);
         }
         input, button {
-            width:100%;
-            padding:10px;
-            margin-top:10px;
-            font-size:16px;
+            width: 100%;
+            padding: 10px;
+            margin-top: 12px;
+            font-size: 15px;
         }
         button {
-            background:#007bff;
-            color:white;
-            border:none;
-            border-radius:5px;
-            cursor:pointer;
+            background: #2563eb;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        button:hover {
+            background: #1e40af;
         }
         img {
-            margin-top:15px;
-            width:200px;
+            margin-top: 20px;
+            width: 220px;
+        }
+        a {
+            display: block;
+            margin-top: 10px;
+            word-break: break-all;
         }
     </style>
 </head>
@@ -44,14 +50,27 @@
 <div class="card">
     <h2>🚗 BEAC Vehicle QR System</h2>
 
-    <form method="POST">
-        <input type="text" name="vehicle" placeholder="Vehicle Number" required>
-        <input type="date" name="expiry" required>
+    <!-- 🔒 IMPORTANT: method="POST" -->
+    <form method="POST" action="/">
+        <input
+            type="text"
+            name="vehicle"
+            placeholder="Vehicle Number"
+            required
+        >
+
+        <input
+            type="date"
+            name="expiry"
+            required
+        >
+
         <button type="submit">Generate QR</button>
     </form>
 
-    {% if qr_file %}
-        <img src="/{{ qr_file }}">
+    {% if qr_image %}
+        <img src="/{{ qr_image }}" alt="QR Code">
+        <a href="{{ verify_url }}" target="_blank">{{ verify_url }}</a>
     {% endif %}
 </div>
 
