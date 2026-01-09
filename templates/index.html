@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>BEAC Vehicle Verification</title>
+    <title>BEAC Vehicle QR System</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <style>
         body {
@@ -20,43 +20,39 @@
             width:320px;
             text-align:center;
         }
-        .status {
-            font-weight:bold;
-            font-size:18px;
+        input, button {
+            width:100%;
+            padding:10px;
             margin-top:10px;
+            font-size:16px;
         }
-        .warning {
-            margin-top:10px;
-            font-size:14px;
-            color:#b85c00;
+        button {
+            background:#007bff;
+            color:white;
+            border:none;
+            border-radius:5px;
+            cursor:pointer;
         }
-        .footer {
+        img {
             margin-top:15px;
-            font-size:12px;
-            color:#777;
+            width:200px;
         }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <h2>🚗 BEAC Vehicle Verification</h2>
+    <h2>🚗 BEAC Vehicle QR System</h2>
 
-    <p><b>Vehicle Number:</b><br>{{ vehicle }}</p>
-    <p><b>Expiry Date:</b><br>{{ expiry }}</p>
+    <form method="POST">
+        <input type="text" name="vehicle" placeholder="Vehicle Number" required>
+        <input type="date" name="expiry" required>
+        <button type="submit">Generate QR</button>
+    </form>
 
-    <div class="status" style="color:{{ color }}">
-        Status: {{ status }}
-    </div>
-
-    {% if warning %}
-    <div class="warning">{{ warning }}</div>
+    {% if qr_file %}
+        <img src="/{{ qr_file }}">
     {% endif %}
-
-    <div class="footer">
-        QR Version: {{ version }}<br>
-        Verified by BEAC System
-    </div>
 </div>
 
 </body>
