@@ -4,9 +4,13 @@
     <title>BEAC Vehicle QR System</title>
 </head>
 <body>
-    <h2>BEAC Vehicle QR System</h2>
-    <a href="/logout">Logout</a>
+    <h2>🚗 BEAC Vehicle QR System</h2>
+
+    <a href="/admin/export-weekly">⬇ Download This Week’s Excel</a>
     <br><br>
+    <a href="/logout">Logout</a>
+
+    <hr>
 
     <form method="POST">
         <input type="text" name="vehicle" placeholder="Vehicle Number" required><br><br>
@@ -17,7 +21,7 @@
     {% if qr_image %}
         <h3>QR Generated</h3>
         <img src="data:image/png;base64,{{ qr_image }}" width="200"><br>
-        <a href="{{ qr_url }}" target="_blank">{{ qr_url }}</a>
+        <p>{{ qr_url }}</p>
     {% endif %}
 </body>
 </html>
