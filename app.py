@@ -13,7 +13,7 @@ DB = "vehicles.db"
 
 # ---------------- DATABASE ----------------
 def get_db():
-    return sqlite3.connect(DB)
+    return sqlite3.connect(DB, check_same_thread=False)
 
 def init_db():
     conn = get_db()
@@ -35,10 +35,7 @@ init_db()
 @app.route("/", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
-        if (
-            request.form["username"] == "admin"
-            and request.form["password"] == "admin123"
-        ):
+        if request.form["username"] == "admin" and request.form["password"] == "admin123":
             session["admin"] = True
             return redirect("/admin")
     return render_template("login.html")
@@ -49,7 +46,7 @@ def logout():
     session.clear()
     return redirect("/")
 
-# ---------------- ADMIN DASHBOARD ----------------
+# ---------------- ADMIN ----------------
 @app.route("/admin", methods=["GET", "POST"])
 def admin():
     if not session.get("admin"):
@@ -60,31 +57,31 @@ def admin():
     message = None
 
     if request.method == "POST":
-        vehicle = request.form["vehicle"]
-        expiry = request.form["expiry"]
+        vehicle = request.form.get("vehicle")
+        expiry = request.form.get("expiry")
 
-        # save to database
-        conn = get_db()
-        cur = conn.cursor()
-        cur.execute(
-            "INSERT INTO vehicles (vehicle, expiry, created_at) VALUES (?, ?, ?)",
-            (vehicle, expiry, datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
-        )
-        token = cur.lastrowid
-        conn.commit()
-        conn.close()
+        if not vehicle or not expiry:
+            message = "Vehicle and expiry required"
+        else:
+            conn = get_db()
+            cur = conn.cursor()
+            cur.execute(
+                "INSERT INTO vehicles (vehicle, expiry, created_at) VALUES (?, ?, ?)",
+                (vehicle, expiry, datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+            )
+            token = cur.lastrowid
+            conn.commit()
+            conn.close()
 
-        # -------- QR GENERATION (RENDER SAFE) --------
-        verify_url = f"https://beac-vehicle-qr-clean.onrender.com/verify/{token}"
+            verify_url = f"https://beac-vehicle-qr-clean.onrender.com/verify/{token}"
 
-        qr = qrcode.make(verify_url)
-        buffer = io.BytesIO()
-        qr.save(buffer, format="PNG")
-        buffer.seek(0)
-        qr_base64 = base64.b64encode(buffer.getvalue()).decode()
-        # --------------------------------------------
+            qr = qrcode.make(verify_url)
+            buffer = io.BytesIO()
+            qr.save(buffer, format="PNG")
+            buffer.seek(0)
+            qr_base64 = base64.b64encode(buffer.getvalue()).decode()
 
-        message = "QR generated successfully"
+            message = "QR generated successfully"
 
     return render_template(
         "admin.html",
@@ -93,7 +90,7 @@ def admin():
         message=message
     )
 
-# ---------------- VERIFY QR ----------------
+# ---------------- VERIFY ----------------
 @app.route("/verify/<int:token>")
 def verify(token):
     conn = get_db()
@@ -120,7 +117,7 @@ def verify(token):
         created_at=created_at
     )
 
-# ---------------- EXPORT LOGS (CSV / EXCEL) ----------------
+# ---------------- EXPORT LOGS ----------------
 @app.route("/export")
 def export_logs():
     if not session.get("admin"):
@@ -128,7 +125,7 @@ def export_logs():
 
     conn = get_db()
     cur = conn.cursor()
-    cur.execute("SELECT id, vehicle, expiry, created_at FROM vehicles")
+    cur.execute("SELECT id, vehicle, expiry, created_at FROM vehicles ORDER BY id DESC")
     rows = cur.fetchall()
     conn.close()
 

@@ -1,33 +1,40 @@
-<h2>BEAC Vehicle QR System</h2>
+<!DOCTYPE html>
+<html>
+<head>
+    <title>BEAC Vehicle QR System</title>
+</head>
+<body>
+
+<h2>🚗 BEAC Vehicle QR System</h2>
 <a href="/logout">Logout</a>
 
-<form method="post">
-  <input name="vehicle" placeholder="Vehicle Number" required><br>
-  <input type="date" name="expiry" required><br>
-  <button type="submit">Generate QR</button>
+<hr>
+
+<form method="POST">
+    <input type="text" name="vehicle" placeholder="Vehicle Number" required><br><br>
+    <input type="date" name="expiry" required><br><br>
+    <button type="submit">Generate QR</button>
 </form>
 
-{% if qr %}
+{% if message %}
+<p><b>{{ message }}</b></p>
+{% endif %}
+
+{% if qr_base64 %}
+<hr>
 <h3>QR Generated</h3>
-<img src="/static/qr.png"><br>
-<a href="{{ qr }}">{{ qr }}</a>
+
+<img src="data:image/png;base64,{{ qr_base64 }}" width="250"><br><br>
+
+<b>Token:</b> {{ token }}<br>
+<a href="/verify/{{ token }}" target="_blank">Open Verify Page</a>
 {% endif %}
 
 <hr>
 
-<h3>Export Logs</h3>
+<h3>📊 Export Vehicle Logs</h3>
 
-<form action="/export/day">
-  <input type="date" name="date" required>
-  <button>Export Day</button>
-</form>
+<a href="/export">Export All Logs (CSV)</a>
 
-<form action="/export/month">
-  <input type="month" name="month" required>
-  <button>Export Month</button>
-</form>
-
-<form action="/export/year">
-  <input type="number" name="year" placeholder="2026" required>
-  <button>Export Year</button>
-</form>
+</body>
+</html>
