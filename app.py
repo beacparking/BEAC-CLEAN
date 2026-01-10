@@ -1,152 +1,145 @@
-from flask import Flask, render_template, request, redirect, session, send_file
+from flask import Flask, render_template, request, redirect, url_for, session, send_file
 import sqlite3
 import qrcode
-import io
-import base64
-from datetime import datetime, date
+import os
+from datetime import datetime
 import csv
 
 app = Flask(__name__)
-app.secret_key = "beac-secret-key"
+app.secret_key = "bea-secret-key"
 
-DB = "vehicles.db"
+DB = "data.db"
 
-# ---------------- DATABASE ----------------
-def get_db():
-    return sqlite3.connect(DB)
-
+# ---------------- INIT ----------------
 def init_db():
-    conn = get_db()
-    cur = conn.cursor()
-    cur.execute("""
-        CREATE TABLE IF NOT EXISTS vehicles (
+    with sqlite3.connect(DB) as con:
+        con.execute("""
+        CREATE TABLE IF NOT EXISTS logs (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            vehicle TEXT NOT NULL,
-            expiry TEXT NOT NULL,
-            created_at TEXT NOT NULL
+            vehicle TEXT,
+            expiry TEXT,
+            created TEXT
         )
-    """)
-    conn.commit()
-    conn.close()
-
+        """)
 init_db()
+
+# ---------------- AUTH ----------------
+USERNAME = "admin"
+PASSWORD = "1234"
 
 # ---------------- LOGIN ----------------
 @app.route("/", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
-        if request.form["username"] == "admin" and request.form["password"] == "admin123":
+        if request.form["username"] == USERNAME and request.form["password"] == PASSWORD:
             session["admin"] = True
             return redirect("/admin")
     return render_template("login.html")
 
-# ---------------- LOGOUT ----------------
 @app.route("/logout")
 def logout():
     session.clear()
     return redirect("/")
 
-# ---------------- ADMIN DASHBOARD ----------------
+# ---------------- ADMIN ----------------
 @app.route("/admin", methods=["GET", "POST"])
 def admin():
     if not session.get("admin"):
         return redirect("/")
 
-    qr_base64 = None
-    token = None
-    message = None
+    qr_url = None
 
     if request.method == "POST":
-        vehicle = request.form.get("vehicle")
-        expiry = request.form.get("expiry")
+        vehicle = request.form["vehicle"]
+        expiry = request.form["expiry"]
+        created = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
-        if not vehicle or not expiry:
-            message = "Vehicle and expiry required"
-        else:
-            conn = get_db()
-            cur = conn.cursor()
-            cur.execute(
-                "INSERT INTO vehicles (vehicle, expiry, created_at) VALUES (?, ?, ?)",
-                (vehicle, expiry, datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+        # Save DB
+        with sqlite3.connect(DB) as con:
+            con.execute(
+                "INSERT INTO logs (vehicle, expiry, created) VALUES (?,?,?)",
+                (vehicle, expiry, created)
             )
-            token = cur.lastrowid
-            conn.commit()
-            conn.close()
 
-            # QR URL (Render domain)
-            verify_url = f"https://beac-vehicle-qr-clean.onrender.com/verify/{token}"
+        # Build QR URL
+        qr_url = request.url_root + "verify/" + vehicle
 
-            # Generate QR IN MEMORY (Render safe)
-            qr = qrcode.make(verify_url)
-            buffer = io.BytesIO()
-            qr.save(buffer, format="PNG")
-            buffer.seek(0)
-            qr_base64 = base64.b64encode(buffer.getvalue()).decode()
+        # Ensure static folder
+        if not os.path.exists("static"):
+            os.makedirs("static")
 
-            message = "QR generated successfully"
+        # Generate QR
+        img = qrcode.make(qr_url)
+        img.save("static/qr.png")
 
-    return render_template(
-        "admin.html",
-        qr_base64=qr_base64,
-        token=token,
-        message=message
-    )
+    return render_template("admin.html", qr=qr_url)
 
-# ---------------- VERIFY QR ----------------
-@app.route("/verify/<int:token>")
-def verify(token):
-    conn = get_db()
-    cur = conn.cursor()
-    cur.execute(
-        "SELECT vehicle, expiry, created_at FROM vehicles WHERE id = ?",
-        (token,)
-    )
-    row = cur.fetchone()
-    conn.close()
+# ---------------- VERIFY ----------------
+@app.route("/verify/<vehicle>")
+def verify(vehicle):
+    with sqlite3.connect(DB) as con:
+        row = con.execute(
+            "SELECT expiry FROM logs WHERE vehicle=? ORDER BY id DESC LIMIT 1",
+            (vehicle,)
+        ).fetchone()
 
     if not row:
-        return "INVALID QR", 404
+        return "INVALID QR"
 
-    vehicle, expiry, created_at = row
+    expiry = row[0]
+    today = datetime.now().date()
+    exp_date = datetime.strptime(expiry, "%Y-%m-%d").date()
 
-    expiry_date = datetime.strptime(expiry, "%Y-%m-%d").date()
-    today = date.today()
-
-    status = "VALID" if today <= expiry_date else "EXPIRED"
+    status = "VALID" if today <= exp_date else "EXPIRED"
 
     return render_template(
         "verify.html",
         vehicle=vehicle,
         expiry=expiry,
-        status=status,
-        created_at=created_at
+        status=status
     )
 
-# ---------------- EXPORT LOGS ----------------
-@app.route("/export")
-def export_logs():
-    if not session.get("admin"):
-        return redirect("/")
+# ---------------- EXPORT HELPERS ----------------
+def export_csv(rows, filename):
+    path = f"/tmp/{filename}"
+    with open(path, "w", newline="") as f:
+        writer = csv.writer(f)
+        writer.writerow(["Vehicle", "Expiry", "Created"])
+        writer.writerows(rows)
+    return send_file(path, as_attachment=True)
 
-    conn = get_db()
-    cur = conn.cursor()
-    cur.execute("SELECT id, vehicle, expiry, created_at FROM vehicles ORDER BY id DESC")
-    rows = cur.fetchall()
-    conn.close()
+# ---------------- EXPORT DAY ----------------
+@app.route("/export/day")
+def export_day():
+    date = request.args.get("date")
+    with sqlite3.connect(DB) as con:
+        rows = con.execute(
+            "SELECT vehicle, expiry, created FROM logs WHERE DATE(created)=?",
+            (date,)
+        ).fetchall()
+    return export_csv(rows, "day.csv")
 
-    output = io.StringIO()
-    writer = csv.writer(output)
-    writer.writerow(["ID", "Vehicle", "Expiry", "Created At"])
-    for r in rows:
-        writer.writerow(r)
+# ---------------- EXPORT MONTH ----------------
+@app.route("/export/month")
+def export_month():
+    month = request.args.get("month")
+    with sqlite3.connect(DB) as con:
+        rows = con.execute(
+            "SELECT vehicle, expiry, created FROM logs WHERE substr(created,1,7)=?",
+            (month,)
+        ).fetchall()
+    return export_csv(rows, "month.csv")
 
-    output.seek(0)
-    return send_file(
-        io.BytesIO(output.getvalue().encode()),
-        mimetype="text/csv",
-        as_attachment=True,
-        download_name="vehicle_logs.csv"
-    )
+# ---------------- EXPORT YEAR ----------------
+@app.route("/export/year")
+def export_year():
+    year = request.args.get("year")
+    with sqlite3.connect(DB) as con:
+        rows = con.execute(
+            "SELECT vehicle, expiry, created FROM logs WHERE substr(created,1,4)=?",
+            (year,)
+        ).fetchall()
+    return export_csv(rows, "year.csv")
 
 # ---------------- RUN ----------------
 if __name__ == "__main__":
