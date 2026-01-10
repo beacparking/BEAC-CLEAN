@@ -1,35 +1,140 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>BEAC Vehicle QR System</title>
+    <meta charset="UTF-8">
+    <title>BEA Vehicle QR System</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <style>
+        body {
+            margin: 0;
+            height: 100vh;
+            background: #062b2b;
+            font-family: Arial, sans-serif;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .top-bar {
+            width: 100%;
+            padding: 20px 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .top-bar a {
+            color: white;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        h1 {
+            margin-top: 20px;
+            font-weight: 500;
+        }
+
+        .form-box {
+            margin-top: 60px;
+            width: 320px;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        input {
+            padding: 12px;
+            border-radius: 4px;
+            border: none;
+            outline: none;
+            font-size: 14px;
+        }
+
+        button {
+            margin-top: 10px;
+            padding: 12px;
+            background: transparent;
+            border: 1px solid white;
+            color: white;
+            cursor: pointer;
+            font-size: 16px;
+            border-radius: 4px;
+        }
+
+        button:hover {
+            background: rgba(255,255,255,0.15);
+        }
+
+        .qr-box {
+            margin-top: 30px;
+            text-align: center;
+        }
+
+        .qr-box img {
+            background: white;
+            padding: 10px;
+        }
+
+        .export-box {
+            margin-top: 80px;
+            width: 320px;
+        }
+
+        .export-box h3 {
+            font-weight: 400;
+            margin-bottom: 15px;
+        }
+
+        .export-box form {
+            margin-bottom: 10px;
+        }
+    </style>
 </head>
 <body>
 
-<h2>🚗 BEAC Vehicle QR System</h2>
-<a href="/logout">Logout</a>
+<div class="top-bar">
+    <div></div>
+    <a href="/logout">Logout</a>
+</div>
 
-<hr>
+<h1>BEA Vehicle QR system</h1>
 
-<form method="POST">
-    <input type="text" name="vehicle" placeholder="Vehicle Number" required><br><br>
-    <input type="date" name="expiry" required><br><br>
-    <button type="submit">Generate QR</button>
-</form>
+<div class="form-box">
+    <form method="POST">
+        <input type="text" name="vehicle" placeholder="Vehicle Number" required>
+        <input type="date" name="expiry" required>
+        <button type="submit">Generate QR</button>
+    </form>
+</div>
 
-{% if message %}
-<p><b>{{ message }}</b></p>
+{% if qr %}
+<div class="qr-box">
+    <h3>QR Generated</h3>
+    <img src="/static/qr.png" width="200"><br><br>
+    <a href="{{ qr }}" style="color:#bdfcff;">{{ qr }}</a>
+</div>
 {% endif %}
 
-{% if qr_base64 %}
-<hr>
-<h3>QR Generated</h3>
-<img src="data:image/png;base64,{{ qr_base64 }}" width="250"><br><br>
-<a href="/verify/{{ token }}" target="_blank">Open Verify Page</a>
-{% endif %}
+<div class="export-box">
+    <h3>Export Vehicle Logs (csv)</h3>
 
-<hr>
+    <form action="/export/day">
+        <input type="date" name="date" required>
+        <button>Export Day</button>
+    </form>
 
-<a href="/export">📥 Export Vehicle Logs (CSV)</a>
+    <form action="/export/month">
+        <input type="month" name="month" required>
+        <button>Export Month</button>
+    </form>
+
+    <form action="/export/year">
+        <input type="number" name="year" placeholder="2026" required>
+        <button>Export Year</button>
+    </form>
+</div>
 
 </body>
 </html>
