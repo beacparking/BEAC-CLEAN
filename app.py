@@ -1,26 +1,29 @@
-from flask import Flask, render_template, request, redirect, session, url_for, send_file
+from flask import Flask, render_template, request, redirect, session, send_file
 import sqlite3
 import qrcode
-import os
-from datetime import datetime
-from openpyxl import Workbook
 import io
+import base64
+from datetime import datetime, date
+import csv
 
 app = Flask(__name__)
-app.secret_key = "beac_secret_key"
+app.secret_key = "beac-secret-key"
 
-DB = "database.db"
+DB = "vehicles.db"
 
-# ------------------ DATABASE INIT ------------------
+# ---------------- DATABASE ----------------
+def get_db():
+    return sqlite3.connect(DB)
+
 def init_db():
-    conn = sqlite3.connect(DB)
+    conn = get_db()
     cur = conn.cursor()
     cur.execute("""
         CREATE TABLE IF NOT EXISTS vehicles (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
-            vehicle TEXT,
-            expiry DATE,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+            vehicle TEXT NOT NULL,
+            expiry TEXT NOT NULL,
+            created_at TEXT NOT NULL
         )
     """)
     conn.commit()
@@ -28,118 +31,121 @@ def init_db():
 
 init_db()
 
-# ------------------ LOGIN ------------------
-ADMIN_USER = "admin"
-ADMIN_PASS = "1234"
-
+# ---------------- LOGIN ----------------
 @app.route("/", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
-        if request.form["username"] == ADMIN_USER and request.form["password"] == ADMIN_PASS:
+        if (
+            request.form["username"] == "admin"
+            and request.form["password"] == "admin123"
+        ):
             session["admin"] = True
             return redirect("/admin")
     return render_template("login.html")
 
+# ---------------- LOGOUT ----------------
 @app.route("/logout")
 def logout():
     session.clear()
     return redirect("/")
 
-# ------------------ ADMIN DASHBOARD ------------------
+# ---------------- ADMIN DASHBOARD ----------------
 @app.route("/admin", methods=["GET", "POST"])
 def admin():
     if not session.get("admin"):
         return redirect("/")
 
-    qr_url = None
+    qr_base64 = None
+    token = None
+    message = None
 
     if request.method == "POST":
         vehicle = request.form["vehicle"]
         expiry = request.form["expiry"]
 
-        conn = sqlite3.connect(DB)
+        # save to database
+        conn = get_db()
         cur = conn.cursor()
-        cur.execute("INSERT INTO vehicles (vehicle, expiry) VALUES (?, ?)", (vehicle, expiry))
-        vid = cur.lastrowid
+        cur.execute(
+            "INSERT INTO vehicles (vehicle, expiry, created_at) VALUES (?, ?, ?)",
+            (vehicle, expiry, datetime.now().strftime("%Y-%m-%d %H:%M:%S"))
+        )
+        token = cur.lastrowid
         conn.commit()
         conn.close()
 
-        qr_url = f"https://beac-vehicle-qr-clean.onrender.com/verify/{vid}"
+        # -------- QR GENERATION (RENDER SAFE) --------
+        verify_url = f"https://beac-vehicle-qr-clean.onrender.com/verify/{token}"
 
-        img = qrcode.make(qr_url)
-        img.save("static/qr.png")
+        qr = qrcode.make(verify_url)
+        buffer = io.BytesIO()
+        qr.save(buffer, format="PNG")
+        buffer.seek(0)
+        qr_base64 = base64.b64encode(buffer.getvalue()).decode()
+        # --------------------------------------------
 
-    return render_template("admin.html", qr=qr_url)
+        message = "QR generated successfully"
 
-# ------------------ VERIFY ------------------
-@app.route("/verify/<int:vid>")
-def verify(vid):
-    conn = sqlite3.connect(DB)
+    return render_template(
+        "admin.html",
+        qr_base64=qr_base64,
+        token=token,
+        message=message
+    )
+
+# ---------------- VERIFY QR ----------------
+@app.route("/verify/<int:token>")
+def verify(token):
+    conn = get_db()
     cur = conn.cursor()
-    cur.execute("SELECT vehicle, expiry FROM vehicles WHERE id=?", (vid,))
+    cur.execute(
+        "SELECT vehicle, expiry, created_at FROM vehicles WHERE id=?",
+        (token,)
+    )
     row = cur.fetchone()
     conn.close()
 
     if not row:
-        return "Invalid QR"
+        return "INVALID QR"
 
-    return render_template("verify.html",
-                           vehicle=row[0],
-                           expiry=row[1])
+    vehicle, expiry, created_at = row
+    expiry_date = datetime.strptime(expiry, "%Y-%m-%d").date()
+    status = "VALID" if expiry_date >= date.today() else "EXPIRED"
 
-# ------------------ EXCEL EXPORT COMMON ------------------
-def generate_excel(rows, filename):
-    wb = Workbook()
-    ws = wb.active
-    ws.append(["Vehicle Number", "Expiry Date", "Generated Time"])
+    return render_template(
+        "verify.html",
+        vehicle=vehicle,
+        expiry=expiry,
+        status=status,
+        created_at=created_at
+    )
 
+# ---------------- EXPORT LOGS (CSV / EXCEL) ----------------
+@app.route("/export")
+def export_logs():
+    if not session.get("admin"):
+        return redirect("/")
+
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("SELECT id, vehicle, expiry, created_at FROM vehicles")
+    rows = cur.fetchall()
+    conn.close()
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["ID", "Vehicle", "Expiry", "Created At"])
     for r in rows:
-        ws.append(r)
+        writer.writerow(r)
 
-    file = io.BytesIO()
-    wb.save(file)
-    file.seek(0)
+    output.seek(0)
+    return send_file(
+        io.BytesIO(output.getvalue().encode()),
+        mimetype="text/csv",
+        as_attachment=True,
+        download_name="vehicle_logs.csv"
+    )
 
-    return send_file(file, as_attachment=True, download_name=filename)
-
-# ------------------ EXPORT DAY ------------------
-@app.route("/export/day")
-def export_day():
-    date = request.args.get("date")
-
-    conn = sqlite3.connect(DB)
-    cur = conn.cursor()
-    cur.execute("SELECT vehicle, expiry, created_at FROM vehicles WHERE DATE(created_at)=?", (date,))
-    rows = cur.fetchall()
-    conn.close()
-
-    return generate_excel(rows, f"vehicle_day_{date}.xlsx")
-
-# ------------------ EXPORT MONTH ------------------
-@app.route("/export/month")
-def export_month():
-    month = request.args.get("month")
-
-    conn = sqlite3.connect(DB)
-    cur = conn.cursor()
-    cur.execute("SELECT vehicle, expiry, created_at FROM vehicles WHERE strftime('%Y-%m', created_at)=?", (month,))
-    rows = cur.fetchall()
-    conn.close()
-
-    return generate_excel(rows, f"vehicle_month_{month}.xlsx")
-
-# ------------------ EXPORT YEAR ------------------
-@app.route("/export/year")
-def export_year():
-    year = request.args.get("year")
-
-    conn = sqlite3.connect(DB)
-    cur = conn.cursor()
-    cur.execute("SELECT vehicle, expiry, created_at FROM vehicles WHERE strftime('%Y', created_at)=?", (year,))
-    rows = cur.fetchall()
-    conn.close()
-
-    return generate_excel(rows, f"vehicle_year_{year}.xlsx")
-
+# ---------------- RUN ----------------
 if __name__ == "__main__":
     app.run(debug=True)
