@@ -13,7 +13,7 @@ DB = "vehicles.db"
 
 # ---------------- DATABASE ----------------
 def get_db():
-    return sqlite3.connect(DB, check_same_thread=False)
+    return sqlite3.connect(DB)
 
 def init_db():
     conn = get_db()
@@ -46,7 +46,7 @@ def logout():
     session.clear()
     return redirect("/")
 
-# ---------------- ADMIN ----------------
+# ---------------- ADMIN DASHBOARD ----------------
 @app.route("/admin", methods=["GET", "POST"])
 def admin():
     if not session.get("admin"):
@@ -73,8 +73,10 @@ def admin():
             conn.commit()
             conn.close()
 
+            # QR URL (Render domain)
             verify_url = f"https://beac-vehicle-qr-clean.onrender.com/verify/{token}"
 
+            # Generate QR IN MEMORY (Render safe)
             qr = qrcode.make(verify_url)
             buffer = io.BytesIO()
             qr.save(buffer, format="PNG")
@@ -90,24 +92,27 @@ def admin():
         message=message
     )
 
-# ---------------- VERIFY ----------------
+# ---------------- VERIFY QR ----------------
 @app.route("/verify/<int:token>")
 def verify(token):
     conn = get_db()
     cur = conn.cursor()
     cur.execute(
-        "SELECT vehicle, expiry, created_at FROM vehicles WHERE id=?",
+        "SELECT vehicle, expiry, created_at FROM vehicles WHERE id = ?",
         (token,)
     )
     row = cur.fetchone()
     conn.close()
 
     if not row:
-        return "INVALID QR"
+        return "INVALID QR", 404
 
     vehicle, expiry, created_at = row
+
     expiry_date = datetime.strptime(expiry, "%Y-%m-%d").date()
-    status = "VALID" if expiry_date >= date.today() else "EXPIRED"
+    today = date.today()
+
+    status = "VALID" if today <= expiry_date else "EXPIRED"
 
     return render_template(
         "verify.html",

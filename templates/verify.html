@@ -1,5 +1,21 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>BEAC Vehicle Verification</title>
+</head>
+<body>
+
 <h2>🚗 BEAC Vehicle Verification</h2>
+
 <p><b>Vehicle Number:</b> {{ vehicle }}</p>
 <p><b>Expiry Date:</b> {{ expiry }}</p>
-<p><b>Status:</b> VALID</p>
-<p>Verified by BEAC System</p>
+<p><b>Generated At:</b> {{ created_at }}</p>
+
+{% if status == "VALID" %}
+    <p style="color:green;"><b>Status: VALID</b></p>
+{% else %}
+    <p style="color:red;"><b>Status: EXPIRED</b></p>
+{% endif %}
+
+</body>
+</html>

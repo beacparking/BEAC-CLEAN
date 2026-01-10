@@ -23,18 +23,13 @@
 {% if qr_base64 %}
 <hr>
 <h3>QR Generated</h3>
-
 <img src="data:image/png;base64,{{ qr_base64 }}" width="250"><br><br>
-
-<b>Token:</b> {{ token }}<br>
 <a href="/verify/{{ token }}" target="_blank">Open Verify Page</a>
 {% endif %}
 
 <hr>
 
-<h3>📊 Export Vehicle Logs</h3>
-
-<a href="/export">Export All Logs (CSV)</a>
+<a href="/export">📥 Export Vehicle Logs (CSV)</a>
 
 </body>
 </html>
