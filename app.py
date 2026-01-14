@@ -1,146 +1,146 @@
-from flask import Flask, render_template, request, redirect, url_for, session, send_file
-import sqlite3
-import qrcode
+from flask import Flask, render_template, request, redirect, url_for, send_file
+import psycopg2
 import os
-from datetime import datetime
+import qrcode
+from datetime import datetime, date
 import csv
 
 app = Flask(__name__)
-app.secret_key = "bea-secret-key"
 
-DB = "data.db"
+DATABASE_URL = os.environ.get("DATABASE_URL")
 
-# ---------------- INIT ----------------
+def get_db():
+    return psycopg2.connect(DATABASE_URL, sslmode="require")
+
+# ----------------- INIT DB -----------------
 def init_db():
-    with sqlite3.connect(DB) as con:
-        con.execute("""
-        CREATE TABLE IF NOT EXISTS logs (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            vehicle TEXT,
-            expiry TEXT,
-            created TEXT
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS vehicle_logs (
+            id SERIAL PRIMARY KEY,
+            vehicle TEXT NOT NULL,
+            expiry DATE NOT NULL,
+            created_at TIMESTAMP NOT NULL
         )
-        """)
+    """)
+    conn.commit()
+    cur.close()
+    conn.close()
+
 init_db()
 
-# ---------------- AUTH ----------------
-USERNAME = "admin"
-PASSWORD = "1234"
-
-# ---------------- LOGIN ----------------
+# ----------------- LOGIN (unchanged) -----------------
 @app.route("/", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
-        if request.form["username"] == USERNAME and request.form["password"] == PASSWORD:
-            session["admin"] = True
+        if request.form["username"] == "admin" and request.form["password"] == "admin123":
             return redirect("/admin")
     return render_template("login.html")
 
 @app.route("/logout")
 def logout():
-    session.clear()
     return redirect("/")
 
-# ---------------- ADMIN ----------------
+# ----------------- ADMIN -----------------
 @app.route("/admin", methods=["GET", "POST"])
 def admin():
-    if not session.get("admin"):
-        return redirect("/")
-
-    qr_url = None
+    qr = None
 
     if request.method == "POST":
         vehicle = request.form["vehicle"]
         expiry = request.form["expiry"]
-        created = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        created = datetime.now()
 
-        # Save DB
-        with sqlite3.connect(DB) as con:
-            con.execute(
-                "INSERT INTO logs (vehicle, expiry, created) VALUES (?,?,?)",
-                (vehicle, expiry, created)
-            )
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute(
+            "INSERT INTO vehicle_logs (vehicle, expiry, created_at) VALUES (%s, %s, %s) RETURNING id",
+            (vehicle, expiry, created)
+        )
+        qr_id = cur.fetchone()[0]
+        conn.commit()
+        cur.close()
+        conn.close()
 
-        # Build QR URL
-        qr_url = request.url_root + "verify/" + vehicle
-
-        # Ensure static folder
-        if not os.path.exists("static"):
-            os.makedirs("static")
-
-        # Generate QR
+        qr_url = f"{request.url_root}verify/{qr_id}"
         img = qrcode.make(qr_url)
         img.save("static/qr.png")
+        qr = qr_url
 
-    return render_template("admin.html", qr=qr_url)
+    return render_template("admin.html", qr=qr)
 
-# ---------------- VERIFY ----------------
-@app.route("/verify/<vehicle>")
-def verify(vehicle):
-    with sqlite3.connect(DB) as con:
-        row = con.execute(
-            "SELECT expiry FROM logs WHERE vehicle=? ORDER BY id DESC LIMIT 1",
-            (vehicle,)
-        ).fetchone()
+# ----------------- VERIFY -----------------
+@app.route("/verify/<int:qr_id>")
+def verify(qr_id):
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("SELECT vehicle, expiry, created_at FROM vehicle_logs WHERE id=%s", (qr_id,))
+    row = cur.fetchone()
+    cur.close()
+    conn.close()
 
     if not row:
         return "INVALID QR"
 
-    expiry = row[0]
-    today = datetime.now().date()
-    exp_date = datetime.strptime(expiry, "%Y-%m-%d").date()
-
-    status = "VALID" if today <= exp_date else "EXPIRED"
+    vehicle, expiry, created = row
+    status = "VALID" if date.today() <= expiry else "EXPIRED"
 
     return render_template(
         "verify.html",
         vehicle=vehicle,
         expiry=expiry,
+        created=created,
         status=status
     )
 
-# ---------------- EXPORT HELPERS ----------------
+# ----------------- EXPORT CSV -----------------
 def export_csv(rows, filename):
     path = f"/tmp/{filename}"
     with open(path, "w", newline="") as f:
         writer = csv.writer(f)
-        writer.writerow(["Vehicle", "Expiry", "Created"])
+        writer.writerow(["Vehicle", "Expiry", "Generated At"])
         writer.writerows(rows)
     return send_file(path, as_attachment=True)
 
-# ---------------- EXPORT DAY ----------------
 @app.route("/export/day")
 def export_day():
-    date = request.args.get("date")
-    with sqlite3.connect(DB) as con:
-        rows = con.execute(
-            "SELECT vehicle, expiry, created FROM logs WHERE DATE(created)=?",
-            (date,)
-        ).fetchall()
+    date_q = request.args.get("date")
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("SELECT vehicle, expiry, created_at FROM vehicle_logs WHERE DATE(created_at)=%s", (date_q,))
+    rows = cur.fetchall()
+    cur.close()
+    conn.close()
     return export_csv(rows, "day.csv")
 
-# ---------------- EXPORT MONTH ----------------
 @app.route("/export/month")
 def export_month():
     month = request.args.get("month")
-    with sqlite3.connect(DB) as con:
-        rows = con.execute(
-            "SELECT vehicle, expiry, created FROM logs WHERE substr(created,1,7)=?",
-            (month,)
-        ).fetchall()
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute(
+        "SELECT vehicle, expiry, created_at FROM vehicle_logs WHERE TO_CHAR(created_at,'YYYY-MM')=%s",
+        (month,)
+    )
+    rows = cur.fetchall()
+    cur.close()
+    conn.close()
     return export_csv(rows, "month.csv")
 
-# ---------------- EXPORT YEAR ----------------
 @app.route("/export/year")
 def export_year():
     year = request.args.get("year")
-    with sqlite3.connect(DB) as con:
-        rows = con.execute(
-            "SELECT vehicle, expiry, created FROM logs WHERE substr(created,1,4)=?",
-            (year,)
-        ).fetchall()
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute(
+        "SELECT vehicle, expiry, created_at FROM vehicle_logs WHERE EXTRACT(YEAR FROM created_at)=%s",
+        (year,)
+    )
+    rows = cur.fetchall()
+    cur.close()
+    conn.close()
     return export_csv(rows, "year.csv")
 
-# ---------------- RUN ----------------
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run()

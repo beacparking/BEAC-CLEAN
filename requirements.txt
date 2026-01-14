@@ -3,3 +3,4 @@ gunicorn
 qrcode
 pillow
 openpyxl
+psycopg2-binary
