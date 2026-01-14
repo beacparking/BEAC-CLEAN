@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, send_file
+from flask import Flask, render_template, request, redirect, send_file
 import psycopg2
 import os
 import qrcode
@@ -7,12 +7,23 @@ import csv
 
 app = Flask(__name__)
 
+# ================================
+# DATABASE
+# ================================
 DATABASE_URL = os.environ.get("DATABASE_URL")
 
 def get_db():
-    return psycopg2.connect(DATABASE_URL, sslmode="require")
+    return psycopg2.connect(DATABASE_URL)
 
-# ----------------- INIT DB -----------------
+# ================================
+# STATIC FOLDER (RENDER SAFE)
+# ================================
+STATIC_DIR = os.path.join(os.getcwd(), "static")
+os.makedirs(STATIC_DIR, exist_ok=True)
+
+# ================================
+# INIT DB
+# ================================
 def init_db():
     conn = get_db()
     cur = conn.cursor()
@@ -30,11 +41,13 @@ def init_db():
 
 init_db()
 
-# ----------------- LOGIN (unchanged) -----------------
+# ================================
+# LOGIN
+# ================================
 @app.route("/", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
-        if request.form["username"] == "admin" and request.form["password"] == "admin123":
+        if request.form["username"] == "admin" and request.form["password"] == "admin":
             return redirect("/admin")
     return render_template("login.html")
 
@@ -42,7 +55,9 @@ def login():
 def logout():
     return redirect("/")
 
-# ----------------- ADMIN -----------------
+# ================================
+# ADMIN
+# ================================
 @app.route("/admin", methods=["GET", "POST"])
 def admin():
     qr = None
@@ -64,18 +79,26 @@ def admin():
         conn.close()
 
         qr_url = f"{request.url_root}verify/{qr_id}"
+
         img = qrcode.make(qr_url)
-        img.save("static/qr.png")
+        qr_path = os.path.join(STATIC_DIR, "qr.png")
+        img.save(qr_path)
+
         qr = qr_url
 
     return render_template("admin.html", qr=qr)
 
-# ----------------- VERIFY -----------------
+# ================================
+# VERIFY
+# ================================
 @app.route("/verify/<int:qr_id>")
 def verify(qr_id):
     conn = get_db()
     cur = conn.cursor()
-    cur.execute("SELECT vehicle, expiry, created_at FROM vehicle_logs WHERE id=%s", (qr_id,))
+    cur.execute(
+        "SELECT vehicle, expiry, created_at FROM vehicle_logs WHERE id = %s",
+        (qr_id,)
+    )
     row = cur.fetchone()
     cur.close()
     conn.close()
@@ -94,12 +117,14 @@ def verify(qr_id):
         status=status
     )
 
-# ----------------- EXPORT CSV -----------------
+# ================================
+# EXPORT CSV
+# ================================
 def export_csv(rows, filename):
     path = f"/tmp/{filename}"
     with open(path, "w", newline="") as f:
         writer = csv.writer(f)
-        writer.writerow(["Vehicle", "Expiry", "Generated At"])
+        writer.writerow(["Vehicle", "Expiry", "Created At"])
         writer.writerows(rows)
     return send_file(path, as_attachment=True)
 
@@ -108,7 +133,10 @@ def export_day():
     date_q = request.args.get("date")
     conn = get_db()
     cur = conn.cursor()
-    cur.execute("SELECT vehicle, expiry, created_at FROM vehicle_logs WHERE DATE(created_at)=%s", (date_q,))
+    cur.execute(
+        "SELECT vehicle, expiry, created_at FROM vehicle_logs WHERE DATE(created_at) = %s",
+        (date_q,)
+    )
     rows = cur.fetchall()
     cur.close()
     conn.close()
@@ -120,7 +148,7 @@ def export_month():
     conn = get_db()
     cur = conn.cursor()
     cur.execute(
-        "SELECT vehicle, expiry, created_at FROM vehicle_logs WHERE TO_CHAR(created_at,'YYYY-MM')=%s",
+        "SELECT vehicle, expiry, created_at FROM vehicle_logs WHERE TO_CHAR(created_at,'YYYY-MM') = %s",
         (month,)
     )
     rows = cur.fetchall()
@@ -134,7 +162,7 @@ def export_year():
     conn = get_db()
     cur = conn.cursor()
     cur.execute(
-        "SELECT vehicle, expiry, created_at FROM vehicle_logs WHERE EXTRACT(YEAR FROM created_at)=%s",
+        "SELECT vehicle, expiry, created_at FROM vehicle_logs WHERE EXTRACT(YEAR FROM created_at) = %s",
         (year,)
     )
     rows = cur.fetchall()
@@ -142,5 +170,8 @@ def export_year():
     conn.close()
     return export_csv(rows, "year.csv")
 
+# ================================
+# RUN
+# ================================
 if __name__ == "__main__":
     app.run()
