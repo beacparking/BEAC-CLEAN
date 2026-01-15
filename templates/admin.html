@@ -3,8 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <title>BEA Vehicle QR system</title>
-
-    <!-- CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
 </head>
 <body>
@@ -13,35 +11,35 @@
 
     <!-- Header -->
     <div class="header">
-        <img src="{{ url_for('static', filename='images/logo_left.png') }}" class="logo">
+        <img src="{{ url_for('static', filename='images/logo_left.png') }}" class="logo left">
         <h1>BEA Vehicle QR system</h1>
-        <img src="{{ url_for('static', filename='images/logo_right.png') }}" class="logo">
+        <img src="{{ url_for('static', filename='images/logo_right.png') }}" class="logo right">
     </div>
 
-    <!-- Form -->
-    <form method="POST" action="/admin" class="form-box">
+    <!-- Center Form -->
+    <div class="center-box">
+        <form method="POST" action="/admin">
+            <input 
+                type="text" 
+                name="vehicle_number" 
+                placeholder="Vehicle Number" 
+                required
+            >
 
-        <input
-            type="text"
-            name="vehicle_number"
-            placeholder="Vehicle Number"
-            required
-        >
+            <input 
+                type="date" 
+                name="generated_date" 
+                required
+            >
 
-        <input
-            type="date"
-            name="generated_date"
-            required
-        >
+            <button type="submit">Generate QR</button>
+        </form>
+    </div>
 
-        <button type="submit">
-            Generate QR
-        </button>
-
-    </form>
-
-    <!-- Logout -->
-    <a href="/logout" class="logout">Logout</a>
+    <!-- Footer -->
+    <div class="footer">
+        <a href="/logout">Logout</a>
+    </div>
 
 </div>
 
