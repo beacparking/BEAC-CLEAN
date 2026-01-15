@@ -3,33 +3,35 @@
 <head>
     <meta charset="UTF-8">
     <title>BEA Parking Login</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
-</head>
-<body>
 
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='css/login.css') }}">
+</head>
+
+<body>
 <div class="page">
 
-    <!-- TOP BAR -->
-    <div class="top-bar">
-        <img src="{{ url_for('static', filename='image/left_logo.png') }}" class="logo left">
-        <div class="title">
-            <h1>Bhutan Exporters Association</h1>
-            <h2>Phuentsholing Regional Chapter</h2>
-        </div>
-        <img src="{{ url_for('static', filename='image/right_logo.png') }}" class="logo right">
+    <!-- TOP HEADER -->
+    <div class="header">
+        <img src="{{ url_for('static', filename='images/left_logo.png') }}" class="logo left">
+        <h1>
+            Bhutan Exporters Association<br>
+            Phuentsholing Regional Chapter
+        </h1>
+        <img src="{{ url_for('static', filename='images/right_logo.png') }}" class="logo right">
     </div>
 
     <!-- MAIN CONTENT -->
     <div class="content">
 
         <!-- LEFT IMAGE -->
-        <div class="left-image">
-            <img src="{{ url_for('static', filename='image/person.png') }}">
+        <div class="image-panel">
+            <img src="{{ url_for('static', filename='images/person.png') }}" alt="Person">
         </div>
 
         <!-- RIGHT LOGIN -->
-        <div class="login-box">
-            <h3>BEA parking</h3>
+        <div class="login-panel">
+            <h2>BEA parking</h2>
 
             <form method="POST" action="/login">
                 <input type="text" name="username" placeholder="USERNAME" required>
@@ -39,8 +41,6 @@
         </div>
 
     </div>
-
 </div>
-
 </body>
 </html>
