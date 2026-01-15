@@ -9,22 +9,23 @@
 
 <div class="container">
 
-    <div class="top">
-        <img src="{{ url_for('static', filename='images/left_logo.png') }}" class="logo">
-        <div class="title">
-            Bhutan Exporters Association<br>
-            Phuentsholing Regional Chapter
-        </div>
-        <img src="{{ url_for('static', filename='images/right_logo.png') }}" class="logo">
+    <div class="header">
+        <img src="{{ url_for('static', filename='images/left_logo.png') }}" class="logo left">
+        <h1>Bhutan Exporters Association<br>Phuentsholing Regional Chapter</h1>
+        <img src="{{ url_for('static', filename='images/right_logo.png') }}" class="logo right">
     </div>
 
     <div class="content">
-        <div class="left">
-            <img src="{{ url_for('static', filename='images/person.png') }}" class="person">
+        <div class="image-panel">
+            <img src="{{ url_for('static', filename='images/person.png') }}">
         </div>
 
-        <div class="right">
+        <div class="login-panel">
             <h2>BEA parking</h2>
+
+            {% if error %}
+                <p class="error">{{ error }}</p>
+            {% endif %}
 
             <form method="POST" action="/login">
                 <input type="text" name="username" placeholder="USERNAME" required>
