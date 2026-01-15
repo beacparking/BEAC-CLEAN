@@ -15,12 +15,11 @@ def get_db():
     return psycopg2.connect(DATABASE_URL, sslmode="require")
 
 # =================================================
-# LOGIN (OPTION A – UI ONLY, NO AUTH YET)
+# LOGIN (PHASE 1 - UI ONLY)
 # =================================================
 @app.route("/", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
-        # UI-only login for Phase 1
         return redirect(url_for("admin"))
     return render_template("login.html")
 
@@ -33,11 +32,20 @@ def admin():
     error = None
 
     if request.method == "POST":
-        # 🔐 READ FORM SAFELY
-        vehicle_number = request.form.get("vehicle_number", "").strip()
-        selected_date = request.form.get("date", "").strip()
+        # 🔹 ACCEPT EXISTING UI FIELD NAMES
+        vehicle_number = (
+            request.form.get("vehicle_number")
+            or request.form.get("vehicle")
+            or ""
+        ).strip()
 
-        # 🛑 HARD VALIDATION (NO CRASH)
+        selected_date = (
+            request.form.get("date")
+            or request.form.get("expiry")
+            or ""
+        ).strip()
+
+        # 🛑 VALIDATION (NO CRASH)
         if not vehicle_number:
             error = "Vehicle number is required."
             return render_template("admin.html", error=error)
@@ -49,14 +57,14 @@ def admin():
         try:
             generated_date = datetime.strptime(selected_date, "%Y-%m-%d").date()
         except Exception:
-            error = "Invalid date format."
+            error = "Invalid date."
             return render_template("admin.html", error=error)
 
         # ⏳ 2-DAY VALIDITY
         expires_date = generated_date + timedelta(days=1)
 
         # =================================================
-        # DATABASE INSERT (SEQUENCE = id)
+        # INSERT INTO DATABASE (SEQUENCE = id)
         # =================================================
         try:
             conn = get_db()
@@ -72,12 +80,12 @@ def admin():
             conn.commit()
             conn.close()
 
-        except Exception as e:
+        except Exception:
             error = "Database error. Please try again."
             return render_template("admin.html", error=error)
 
         # =================================================
-        # QR GENERATION (STABLE)
+        # QR GENERATION
         # =================================================
         qr_url = f"{request.host_url}verify/{sequence}"
 
@@ -100,7 +108,7 @@ def admin():
     return render_template("admin.html", qr=qr, error=error)
 
 # =================================================
-# VERIFY QR (PUBLIC, SAFE FOREVER)
+# VERIFY QR
 # =================================================
 @app.route("/verify/<int:qr_id>")
 def verify(qr_id):
