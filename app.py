@@ -5,10 +5,10 @@ import qrcode
 from datetime import datetime, timedelta
 
 app = Flask(__name__)
-app.secret_key = "bea-secret-key"  # required for login session
+app.secret_key = "bea-secret-key"
 
 # -----------------------------
-# DATABASE CONNECTION
+# DATABASE
 # -----------------------------
 DATABASE_URL = os.environ.get("DATABASE_URL")
 
@@ -21,10 +21,9 @@ def get_db():
 @app.route("/", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
-        username = request.form.get("username")
-        password = request.form.get("password")
+        username = request.form.get("username", "")
+        password = request.form.get("password", "")
 
-        # SIMPLE AUTH (same as before)
         if username == "admin" and password == "admin123":
             session["logged_in"] = True
             return redirect("/admin")
@@ -42,46 +41,58 @@ def admin():
         return redirect("/")
 
     qr = None
+    error = None
 
     if request.method == "POST":
-        # MATCHING admin.html FIELD NAMES ✅
         vehicle_number = request.form.get("vehicle_number")
-        selected_date = request.form.get("generated_date")
+        selected_date = request.form.get("generated_date")  # ✅ MATCHES HTML
 
+        # ---- SAFETY (NO CRASH EVER) ----
         if not vehicle_number or not selected_date:
-            return render_template("admin.html", error="Missing data")
+            error = "Vehicle number and date are required"
+            return render_template("admin.html", error=error)
 
-        generated_date = datetime.strptime(selected_date, "%Y-%m-%d").date()
-        expires_date = generated_date + timedelta(days=2)
+        try:
+            generated_date = datetime.strptime(selected_date, "%Y-%m-%d").date()
+        except Exception:
+            error = "Invalid date"
+            return render_template("admin.html", error=error)
 
-        conn = get_db()
-        cur = conn.cursor()
+        expires_date = generated_date + timedelta(days=1)
 
-        cur.execute("""
-            INSERT INTO vehicle_qr (vehicle_number, generated_date, expires_date)
-            VALUES (%s, %s, %s)
-            RETURNING id
-        """, (vehicle_number, generated_date, expires_date))
+        try:
+            conn = get_db()
+            cur = conn.cursor()
 
-        qr_id = cur.fetchone()[0]
-        conn.commit()
-        conn.close()
+            cur.execute("""
+                INSERT INTO vehicle_qr (vehicle_number, generated_date, expires_date)
+                VALUES (%s, %s, %s)
+                RETURNING id
+            """, (vehicle_number, generated_date, expires_date))
 
-        # QR payload
-        qr_url = f"{request.host_url}verify/{qr_id}"
+            sequence_no = cur.fetchone()[0]
+            conn.commit()
+            conn.close()
+
+        except Exception as e:
+            error = "Database error"
+            return render_template("admin.html", error=error)
+
+        # ---- QR GENERATION ----
+        qr_url = f"{request.host_url}verify/{sequence_no}"
         qr_img = qrcode.make(qr_url)
 
-        qr_path = f"static/qr/{qr_id}.png"
+        qr_path = f"static/qr/{sequence_no}.png"
         qr_img.save(qr_path)
 
         qr = {
-            "id": qr_id,
+            "sequence": sequence_no,
             "vehicle_number": vehicle_number,
             "expires_date": expires_date.strftime("%d-%m-%Y"),
-            "image": qr_path
+            "qr_image": qr_path
         }
 
-    return render_template("admin.html", qr=qr)
+    return render_template("admin.html", qr=qr, error=error)
 
 # -----------------------------
 # VERIFY
@@ -97,13 +108,13 @@ def verify(qr_id):
         WHERE id = %s
     """, (qr_id,))
 
-    row = cur.fetchone()
+    record = cur.fetchone()
     conn.close()
 
-    if not row:
+    if not record:
         return render_template("verify.html", status="INVALID")
 
-    vehicle_number, expires_date = row
+    vehicle_number, expires_date = record
     today = datetime.utcnow().date()
 
     status = "VALID" if today <= expires_date else "EXPIRED"
