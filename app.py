@@ -5,7 +5,7 @@ import qrcode
 from datetime import datetime, timedelta
 
 app = Flask(__name__)
-app.secret_key = "bea-secret-key"
+app.secret_key = "beac-secret-key"
 
 # ---------------- DATABASE ----------------
 DATABASE_URL = os.environ.get("DATABASE_URL")
@@ -28,7 +28,7 @@ def login():
 
     return render_template("login.html")
 
-# ---------------- ADMIN (ONLY ROUTE FOR QR) ----------------
+# ---------------- ADMIN (ALL LOGIC HERE) ----------------
 @app.route("/admin", methods=["GET", "POST"])
 def admin():
     if not session.get("logged_in"):
@@ -39,61 +39,59 @@ def admin():
 
     if request.method == "POST":
         vehicle_number = request.form.get("vehicle_number")
-        selected_date = request.form.get("date")
+        selected_date = request.form.get("generated_date")
 
-        # HARD SAFETY (NO CRASH)
         if not vehicle_number or not selected_date:
-            return render_template("admin.html", error="Vehicle number and date required")
-
-        try:
-            generated_date = datetime.strptime(selected_date, "%Y-%m-%d").date()
-        except ValueError:
-            return render_template("admin.html", error="Invalid date")
-
-        expires_date = generated_date + timedelta(days=1)
-
-        conn = get_db()
-        cur = conn.cursor()
-
-        # -------- DUPLICATE LOCK (SAFE) --------
-        cur.execute("""
-            SELECT id, expires_date
-            FROM vehicle_qr
-            WHERE vehicle_number = %s
-            AND generated_date = %s
-        """, (vehicle_number, generated_date))
-
-        existing = cur.fetchone()
-
-        if existing:
-            sequence_no, expires_date = existing
+            error = "Vehicle number and date required"
         else:
+            try:
+                generated_date = datetime.strptime(selected_date, "%Y-%m-%d").date()
+            except ValueError:
+                error = "Invalid date format"
+
+        if not error:
+            expires_date = generated_date + timedelta(days=1)
+
+            conn = get_db()
+            cur = conn.cursor()
+
+            # 🔒 DUPLICATE LOCK (vehicle + date)
             cur.execute("""
-                INSERT INTO vehicle_qr (vehicle_number, generated_date, expires_date)
-                VALUES (%s, %s, %s)
-                RETURNING id
-            """, (vehicle_number, generated_date, expires_date))
+                SELECT id, expires_date
+                FROM vehicle_qr
+                WHERE vehicle_number = %s
+                AND generated_date = %s
+            """, (vehicle_number, generated_date))
 
-            sequence_no = cur.fetchone()[0]
-            conn.commit()
+            existing = cur.fetchone()
 
-        cur.close()
-        conn.close()
+            if existing:
+                sequence_no, expires_date = existing
+            else:
+                cur.execute("""
+                    INSERT INTO vehicle_qr (vehicle_number, generated_date, expires_date)
+                    VALUES (%s, %s, %s)
+                    RETURNING id
+                """, (vehicle_number, generated_date, expires_date))
+                sequence_no = cur.fetchone()[0]
+                conn.commit()
 
-        # -------- QR GENERATION --------
-        os.makedirs("static/qr", exist_ok=True)
+            cur.close()
+            conn.close()
 
-        qr_url = f"{request.host_url}verify/{sequence_no}"
-        qr_img = qrcode.make(qr_url)
-        qr_path = f"static/qr/{sequence_no}.png"
-        qr_img.save(qr_path)
+            # QR generation
+            os.makedirs("static/qr", exist_ok=True)
+            qr_url = f"{request.host_url}verify/{sequence_no}"
+            qr_img = qrcode.make(qr_url)
+            qr_path = f"static/qr/{sequence_no}.png"
+            qr_img.save(qr_path)
 
-        qr = {
-            "sequence": sequence_no,
-            "vehicle_number": vehicle_number,
-            "expires_date": expires_date.strftime("%d-%m-%Y"),
-            "qr_image": qr_path
-        }
+            qr = {
+                "sequence": sequence_no,
+                "vehicle_number": vehicle_number,
+                "expires_date": expires_date.strftime("%d-%m-%Y"),
+                "qr_image": qr_path
+            }
 
     return render_template("admin.html", qr=qr, error=error)
 
@@ -118,7 +116,6 @@ def verify(qr_id):
 
     vehicle_number, expires_date = record
     today = datetime.utcnow().date()
-
     status = "VALID" if today <= expires_date else "EXPIRED"
 
     return render_template(

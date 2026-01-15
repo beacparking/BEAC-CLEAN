@@ -1,25 +1,29 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>BEA Vehicle QR System</title>
+    <title>Generate Vehicle QR</title>
 </head>
 <body>
 
 <h2>Generate Vehicle QR</h2>
 
-<form method="POST" action="/generate">
+<form method="POST" action="/admin">
     <input type="text" name="vehicle_number" placeholder="Vehicle Number" required>
-    <input type="date" name="date" required>
+    <input type="date" name="generated_date" required>
     <button type="submit">Generate QR</button>
 </form>
 
 <hr>
 
+{% if error %}
+<p style="color:red">{{ error }}</p>
+{% endif %}
+
 {% if qr %}
-    <h3>Token Number: {{ qr.sequence }}</h3>
-    <p>Vehicle: {{ qr.vehicle_number }}</p>
-    <p>Expires: {{ qr.expires_date }}</p>
-    <img src="/{{ qr.qr_image }}" width="200">
+<h3>Token Number: {{ qr.sequence }}</h3>
+<p>Vehicle: {{ qr.vehicle_number }}</p>
+<p>Expires: {{ qr.expires_date }}</p>
+<img src="/{{ qr.qr_image }}" width="200">
 {% endif %}
 
 <br>
