@@ -1,5 +1,5 @@
 flask
-psycopg2-binary
-qrcode	
-pillow
 gunicorn
+qrcode
+psycopg2-binary
+Pillow
