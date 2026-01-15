@@ -1,40 +1,29 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <title>BEA Vehicle QR system</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+    <title>BEA Vehicle QR System</title>
 </head>
 <body>
 
-<!-- Logos -->
-<img src="{{ url_for('static', filename='images/left_logo.png') }}" class="logo left-logo">
-<img src="{{ url_for('static', filename='images/right_logo.png') }}" class="logo right-logo">
+<h2>Generate Vehicle QR</h2>
 
-<!-- Title -->
-<h1 class="title">BEA Vehicle QR system</h1>
+<form method="POST" action="/generate">
+    <input type="text" name="vehicle_number" placeholder="Vehicle Number" required>
+    <input type="date" name="date" required>
+    <button type="submit">Generate QR</button>
+</form>
 
-<!-- Form -->
-<div class="form-container">
-    <form method="POST" action="/admin">
-        <input type="text" name="vehicle_number" placeholder="Vehicle Number" required>
-        <input type="date" name="generated_date" required>
-        <button type="submit">Generate QR</button>
-    </form>
-</div>
+<hr>
+
 {% if qr %}
-<div style="margin-top: 30px; text-align: center;">
-    <h2>Token Number: {{ qr.sequence }}</h2>
-
-    <img src="/{{ qr.qr_image }}" alt="QR Code" style="width: 250px; margin: 15px 0;">
-
-    <p><strong>Vehicle Number:</strong> {{ qr.vehicle_number }}</p>
-    <p><strong>Expiry Date:</strong> {{ qr.expires_date }}</p>
-</div>
+    <h3>Token Number: {{ qr.sequence }}</h3>
+    <p>Vehicle: {{ qr.vehicle_number }}</p>
+    <p>Expires: {{ qr.expires_date }}</p>
+    <img src="/{{ qr.qr_image }}" width="200">
 {% endif %}
 
-<!-- Logout -->
-<a href="/logout" class="logout">Logout</a>
+<br>
+<a href="/logout">Logout</a>
 
 </body>
 </html>
