@@ -1,32 +1,43 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Generate Vehicle QR</title>
+    <title>BEAC Admin</title>
 </head>
 <body>
 
-<h2>Generate Vehicle QR</h2>
+<h2>BEAC Vehicle QR System</h2>
 
-<form method="POST" action="/admin">
-    <input type="text" name="vehicle_number" placeholder="Vehicle Number" required>
-    <input type="date" name="generated_date" required>
+<form method="POST">
+    <input type="text" name="vehicle" placeholder="Vehicle Number" required>
+    <input type="date" name="date" required>
     <button type="submit">Generate QR</button>
 </form>
 
-<hr>
-
 {% if error %}
-<p style="color:red">{{ error }}</p>
+<p style="color:red;">{{ error }}</p>
 {% endif %}
 
 {% if qr %}
-<h3>Token Number: {{ qr.sequence }}</h3>
-<p>Vehicle: {{ qr.vehicle_number }}</p>
-<p>Expires: {{ qr.expires_date }}</p>
-<img src="/{{ qr.qr_image }}" width="200">
+<hr>
+<h3>QR Generated</h3>
+<p><b>Token:</b> {{ qr.token }}</p>
+<p><b>Vehicle:</b> {{ qr.vehicle }}</p>
+<p><b>Expiry:</b> {{ qr.expiry }}</p>
+
+<img src="/{{ qr.qr_path }}" width="200">
+<br>
+<a href="{{ qr.qr_url }}">{{ qr.qr_url }}</a>
 {% endif %}
 
-<br>
+<hr>
+
+<h3>📤 Export CSV</h3>
+
+<a href="/admin/export/daily"><button>Export Daily</button></a>
+<a href="/admin/export/weekly"><button>Export Weekly</button></a>
+<a href="/admin/export/monthly"><button>Export Monthly</button></a>
+
+<hr>
 <a href="/logout">Logout</a>
 
 </body>
