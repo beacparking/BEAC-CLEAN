@@ -2,6 +2,8 @@ from flask import Flask, render_template, request, redirect, url_for, session
 import psycopg2
 import os
 import qrcode
+import csv
+import io
 from datetime import datetime, timedelta, date
 
 app = Flask(__name__)
@@ -11,6 +13,18 @@ DATABASE_URL = os.environ.get("DATABASE_URL")
 
 def get_db():
     return psycopg2.connect(DATABASE_URL)
+def export_csv(rows, filename):
+    def generate():
+        data = csv.writer([])
+        yield "vehicle_number,generated_date,expires_date\n"
+        for r in rows:
+            yield f"{r[0]},{r[1]},{r[2]}\n"
+
+    return Response(
+        generate(),
+        mimetype="text/csv",
+        headers={"Content-Disposition": f"attachment; filename={filename}"}
+    )
 
 # ---------------- LOGIN ----------------
 ADMIN_USERNAME = "admin"
@@ -55,7 +69,7 @@ def admin():
             error = "Vehicle number and date required"
         else:
             generated_date = datetime.strptime(selected_date, "%Y-%m-%d").date()
-            expires_date = generated_date + timedelta(days=1)
+            expires_date = generated_date + timedelta(days=2)
 
             conn = get_db()
             cur = conn.cursor()
@@ -98,6 +112,64 @@ def admin():
             }
 
     return render_template("admin.html", qr=qr_data, error=error)
+from flask import Response
+from datetime import timedelta
+
+@app.route("/admin/export/daily")
+def export_daily():
+    if not session.get("logged_in"):
+        return redirect(url_for("login"))
+
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT vehicle_number, generated_date, expires_date
+        FROM vehicle_qr
+        WHERE generated_date = CURRENT_DATE
+        ORDER BY generated_date DESC
+    """)
+    rows = cur.fetchall()
+    conn.close()
+
+    return export_csv(rows, "daily_qr.csv")
+
+
+@app.route("/admin/export/weekly")
+def export_weekly():
+    if not session.get("logged_in"):
+        return redirect(url_for("login"))
+
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT vehicle_number, generated_date, expires_date
+        FROM vehicle_qr
+        WHERE generated_date >= CURRENT_DATE - INTERVAL '7 days'
+        ORDER BY generated_date DESC
+    """)
+    rows = cur.fetchall()
+    conn.close()
+
+    return export_csv(rows, "weekly_qr.csv")
+
+
+@app.route("/admin/export/monthly")
+def export_monthly():
+    if not session.get("logged_in"):
+        return redirect(url_for("login"))
+
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT vehicle_number, generated_date, expires_date
+        FROM vehicle_qr
+        WHERE generated_date >= CURRENT_DATE - INTERVAL '30 days'
+        ORDER BY generated_date DESC
+    """)
+    rows = cur.fetchall()
+    conn.close()
+
+    return export_csv(rows, "monthly_qr.csv")
 
 # ---------------- VERIFY ----------------
 @app.route("/verify/<int:token_id>")
@@ -118,7 +190,7 @@ def verify(token_id):
 
     vehicle, expiry = row
     today = date.today()
-    status = "VALID" if today <= expiry else "EXPIRED"
+    status = "VALID" if today < expiry else "EXPIRED"
 
     return render_template(
         "verify.html",
