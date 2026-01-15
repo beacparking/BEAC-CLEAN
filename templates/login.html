@@ -3,34 +3,53 @@
 <head>
     <meta charset="UTF-8">
     <title>BEA Parking Login</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <style>
+        * {
+            box-sizing: border-box;
+            font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        }
+
         body {
             margin: 0;
             height: 100vh;
-            background: #062b2b; /* dark teal */
-            font-family: Arial, sans-serif;
-            color: white;
+            background-color: #063a3a;
+            color: #ffffff;
         }
 
-        .wrapper {
+        .container {
             display: flex;
-            height: 100%;
+            height: 100vh;
+            width: 100%;
         }
 
+        /* LEFT SIDE */
         .left {
-            flex: 1;
+            width: 50%;
+            padding: 40px;
+            position: relative;
         }
 
+        .left img.logo-left {
+            width: 130px;
+        }
+
+        .title {
+            margin-top: 20px;
+            font-size: 28px;
+            font-weight: 600;
+        }
+
+        /* CENTER LINE */
         .divider {
-            width: 2px;
-            background: rgba(255,255,255,0.4);
-            margin: 80px 0;
+            width: 1px;
+            background-color: rgba(255, 255, 255, 0.4);
         }
 
+        /* RIGHT SIDE */
         .right {
-            flex: 1;
+            width: 50%;
             display: flex;
             justify-content: center;
             align-items: center;
@@ -40,44 +59,44 @@
             width: 320px;
         }
 
-        h2 {
-            margin-bottom: 30px;
+        .login-box h2 {
+            margin-bottom: 25px;
+            font-size: 26px;
             font-weight: 500;
         }
 
-        input {
+        .login-box input {
             width: 100%;
-            padding: 12px;
+            padding: 14px;
             margin-bottom: 15px;
-            border-radius: 4px;
             border: none;
-            outline: none;
+            border-radius: 4px;
             font-size: 14px;
         }
 
-        button {
+        .login-box button {
             width: 100%;
             padding: 12px;
             background: transparent;
-            border: 1px solid white;
-            color: white;
-            cursor: pointer;
+            border: 1px solid #ffffff;
+            color: #ffffff;
             font-size: 16px;
-            border-radius: 4px;
+            cursor: pointer;
         }
 
-        button:hover {
-            background: rgba(255,255,255,0.15);
+        .login-box button:hover {
+            background-color: rgba(255,255,255,0.15);
         }
 
+        /* RESPONSIVE */
         @media (max-width: 768px) {
-            .wrapper {
+            .container {
                 flex-direction: column;
             }
-            .divider {
-                display: none;
+            .left, .right {
+                width: 100%;
             }
-            .left {
+            .divider {
                 display: none;
             }
         }
@@ -85,11 +104,21 @@
 </head>
 <body>
 
-<div class="wrapper">
-    <div class="left"></div>
+<div class="container">
 
+    <!-- LEFT -->
+    <div class="left">
+        <img src="{{ url_for('static', filename='logo_left.png') }}" class="logo-left" alt="Logo">
+        <div class="title">
+            Bhutan Exporters Association<br>
+            Phuentsholing Regional Chapter
+        </div>
+    </div>
+
+    <!-- CENTER LINE -->
     <div class="divider"></div>
 
+    <!-- RIGHT -->
     <div class="right">
         <div class="login-box">
             <h2>BEA parking</h2>
@@ -101,6 +130,7 @@
             </form>
         </div>
     </div>
+
 </div>
 
 </body>
