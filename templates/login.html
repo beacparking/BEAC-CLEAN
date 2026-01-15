@@ -7,34 +7,37 @@
 </head>
 <body>
 
-<div class="container">
+<!-- HEADER -->
+<div class="header">
+    <img src="{{ url_for('static', filename='images/left_logo.png') }}" class="logo left">
+    <div class="title">
+        <h1>Bhutan Exporters Association</h1>
+        <h2>Phuentsholing Regional Chapter</h2>
+    </div>
+    <img src="{{ url_for('static', filename='images/right_logo.png') }}" class="logo right">
+</div>
 
-    <div class="header">
-        <img src="{{ url_for('static', filename='images/left_logo.png') }}" class="logo left">
-        <h1>Bhutan Exporters Association<br>Phuentsholing Regional Chapter</h1>
-        <img src="{{ url_for('static', filename='images/right_logo.png') }}" class="logo right">
+<!-- MAIN CONTENT -->
+<div class="main">
+    <!-- LEFT IMAGE -->
+    <div class="left-section">
+        <img src="{{ url_for('static', filename='images/king.png') }}" class="hero">
     </div>
 
-    <div class="content">
-        <div class="image-panel">
-            <img src="{{ url_for('static', filename='images/person.png') }}">
-        </div>
+    <!-- LOGIN BOX -->
+    <div class="right-section">
+        <h3>BEA parking</h3>
 
-        <div class="login-panel">
-            <h2>BEA parking</h2>
+        {% if error %}
+            <p class="error">{{ error }}</p>
+        {% endif %}
 
-            {% if error %}
-                <p class="error">{{ error }}</p>
-            {% endif %}
-
-            <form method="POST" action="/login">
-                <input type="text" name="username" placeholder="USERNAME" required>
-                <input type="password" name="password" placeholder="PASSWORD" required>
-                <button type="submit">Login</button>
-            </form>
-        </div>
+        <form method="POST">
+            <input type="text" name="username" placeholder="USERNAME" required>
+            <input type="password" name="password" placeholder="PASSWORD" required>
+            <button type="submit">Login</button>
+        </form>
     </div>
-
 </div>
 
 </body>
