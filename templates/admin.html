@@ -3,26 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <title>BEA Vehicle QR system</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
 </head>
-
 <body>
 
-    <!-- TOP LOGOS -->
-    <div class="top-bar">
-        <img src="{{ url_for('static', filename='images/left_logo.png') }}" class="logo left">
+<div class="page">
+
+    <!-- Header -->
+    <div class="header">
+        <img src="{{ url_for('static', filename='images/logo_left.png') }}" class="logo">
         <h1>BEA Vehicle QR system</h1>
-        <img src="{{ url_for('static', filename='images/right_logo.png') }}" class="logo right">
+        <img src="{{ url_for('static', filename='images/logo_right.png') }}" class="logo">
     </div>
 
-    <!-- MAIN CONTENT -->
-    <div class="container">
+    <!-- Form Card -->
+    <div class="card">
+        <form method="POST" action="/admin">
 
-        <!-- GENERATE QR FORM -->
-        <form method="POST" action="/generate" class="qr-form">
             <input
                 type="text"
-                name="vehicle"
+                name="vehicle_number"
                 placeholder="Vehicle Number"
                 required
             >
@@ -35,23 +37,12 @@
 
             <button type="submit">Generate QR</button>
         </form>
-
-        <!-- QR RESULT -->
-        {% if qr_image %}
-        <div class="qr-result">
-            <h2>{{ seq_no }} &nbsp; QR Generated</h2>
-            <p><strong>Vehicle Number:</strong> {{ vehicle_number }}</p>
-            <img src="{{ qr_image }}" alt="QR Code">
-            <p class="validity">
-                Valid for 2 days (Generated day + Next day)
-            </p>
-        </div>
-        {% endif %}
-
     </div>
 
-    <!-- LOGOUT -->
-    <a href="/logout" class="logout">Logout</a>
+    <!-- Logout -->
+    <a class="logout" href="/logout">Logout</a>
+
+</div>
 
 </body>
 </html>

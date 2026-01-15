@@ -1,90 +1,82 @@
 * {
-    margin: 0;
-    padding: 0;
     box-sizing: border-box;
     font-family: Arial, Helvetica, sans-serif;
 }
 
 body {
-    background-color: #063c3c;
-    height: 100vh;
+    margin: 0;
+    background: #0e3b3b;
     color: white;
-    position: relative;
 }
 
-/* TOP BAR */
-.top-bar {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding-top: 30px;
-    position: relative;
-}
-
-.top-bar h1 {
-    font-size: 28px;
-    font-weight: normal;
-}
-
-/* LOGOS */
-.logo {
-    width: 90px;
-    position: absolute;
-    top: 20px;
-}
-
-.logo.left {
-    left: 40px;
-}
-
-.logo.right {
-    right: 40px;
-}
-
-/* CENTER FORM */
-.center-area {
-    display: flex;
-    justify-content: center;
-    margin-top: 120px;
-}
-
-.qr-form {
+.page {
+    min-height: 100vh;
+    padding: 20px;
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
-    gap: 15px;
+    align-items: center;
 }
 
-.qr-form input {
-    width: 220px;
+/* Header */
+.header {
+    width: 100%;
+    max-width: 420px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 40px;
+}
+
+.header h1 {
+    font-size: 18px;
+    text-align: center;
+    flex: 1;
+}
+
+.logo {
+    width: 50px;
+    height: 50px;
+}
+
+/* Card */
+.card {
+    width: 100%;
+    max-width: 320px;
+    background: transparent;
+}
+
+.card form {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.card input {
     padding: 12px;
-    border: none;
-    border-radius: 4px;
     font-size: 14px;
+    border-radius: 4px;
+    border: none;
 }
 
-.qr-form button {
-    padding: 12px 20px;
-    background-color: transparent;
+.card button {
+    padding: 12px;
+    font-size: 14px;
+    background: transparent;
     border: 1px solid white;
     color: white;
     cursor: pointer;
-    font-size: 14px;
 }
 
-.qr-form button:hover {
-    background-color: rgba(255,255,255,0.1);
+.card button:hover {
+    background: rgba(255,255,255,0.1);
 }
 
-/* LOGOUT */
+/* Logout */
 .logout {
-    position: absolute;
-    bottom: 30px;
-    right: 40px;
-}
-
-.logout a {
+    position: fixed;
+    bottom: 20px;
+    right: 20px;
     color: white;
+    font-size: 14px;
     text-decoration: none;
-    font-size: 16px;
 }
