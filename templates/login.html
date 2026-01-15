@@ -1,41 +1,46 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>BEA Parking Login</title>
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
+    <meta charset="UTF-8">
+    <title>BEA Parking Login</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
 </head>
-
 <body>
-  <div class="page">
 
-    <!-- LEFT PANEL -->
-    <div class="left-panel">
-      <img src="{{ url_for('static', filename='images/left_logo.png') }}" class="logo left-logo">
+<div class="page">
 
-      <h1>
-        Bhutan Exporters Association<br>
-        Phuentsholing Regional Chapter
-      </h1>
+    <!-- TOP BAR -->
+    <div class="top-bar">
+        <img src="{{ url_for('static', filename='image/left_logo.png') }}" class="logo left">
+        <div class="title">
+            <h1>Bhutan Exporters Association</h1>
+            <h2>Phuentsholing Regional Chapter</h2>
+        </div>
+        <img src="{{ url_for('static', filename='image/right_logo.png') }}" class="logo right">
     </div>
 
-    <!-- CENTER LINE -->
-    <div class="divider"></div>
+    <!-- MAIN CONTENT -->
+    <div class="content">
 
-    <!-- RIGHT PANEL -->
-    <div class="right-panel">
-      <img src="{{ url_for('static', filename='images/right_logo.png') }}" class="logo right-logo">
+        <!-- LEFT IMAGE -->
+        <div class="left-image">
+            <img src="{{ url_for('static', filename='image/person.png') }}">
+        </div>
 
-      <h2>BEA parking</h2>
+        <!-- RIGHT LOGIN -->
+        <div class="login-box">
+            <h3>BEA parking</h3>
 
-      <!-- IMPORTANT: action="/" -->
-      <form method="POST" action="/">
-        <input type="text" name="username" placeholder="USERNAME" required>
-        <input type="password" name="password" placeholder="PASSWORD" required>
-        <button type="submit">Login</button>
-      </form>
+            <form method="POST" action="/login">
+                <input type="text" name="username" placeholder="USERNAME" required>
+                <input type="password" name="password" placeholder="PASSWORD" required>
+                <button type="submit">Login</button>
+            </form>
+        </div>
+
     </div>
 
-  </div>
+</div>
+
 </body>
 </html>
