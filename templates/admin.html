@@ -22,6 +22,16 @@
         <button type="submit">Generate QR</button>
     </form>
 </div>
+{% if qr %}
+<div style="margin-top: 30px; text-align: center;">
+    <h2>Token Number: {{ qr.sequence }}</h2>
+
+    <img src="/{{ qr.qr_image }}" alt="QR Code" style="width: 250px; margin: 15px 0;">
+
+    <p><strong>Vehicle Number:</strong> {{ qr.vehicle_number }}</p>
+    <p><strong>Expiry Date:</strong> {{ qr.expires_date }}</p>
+</div>
+{% endif %}
 
 <!-- Logout -->
 <a href="/logout" class="logout">Logout</a>
