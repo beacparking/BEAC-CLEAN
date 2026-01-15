@@ -122,26 +122,30 @@ def export_csv(rows):
 @app.route("/export/day")
 def export_day():
     date = request.args.get("date")
+
     conn = get_db()
     cur = conn.cursor()
     cur.execute(
-        "SELECT vehicle_number, log_date, qr_data FROM vehicle_logs WHERE log_date=%s",
+        "SELECT vehicle, log_date, qr_data FROM vehicle_logs WHERE log_date=%s",
         (date,)
     )
     rows = cur.fetchall()
     cur.close()
     conn.close()
+
     return send_file(export_csv(rows), as_attachment=True)
+
 
 @app.route("/export/month")
 def export_month():
     month = request.args.get("month")
     year = request.args.get("year")
+
     conn = get_db()
     cur = conn.cursor()
     cur.execute(
         """
-        SELECT vehicle_number, log_date, qr_data
+        SELECT vehicle, log_date, qr_data
         FROM vehicle_logs
         WHERE EXTRACT(MONTH FROM log_date)=%s
         AND EXTRACT(YEAR FROM log_date)=%s
@@ -151,16 +155,19 @@ def export_month():
     rows = cur.fetchall()
     cur.close()
     conn.close()
+
     return send_file(export_csv(rows), as_attachment=True)
+
 
 @app.route("/export/year")
 def export_year():
     year = request.args.get("year")
+
     conn = get_db()
     cur = conn.cursor()
     cur.execute(
         """
-        SELECT vehicle_number, log_date, qr_data
+        SELECT vehicle, log_date, qr_data
         FROM vehicle_logs
         WHERE EXTRACT(YEAR FROM log_date)=%s
         """,
@@ -169,4 +176,5 @@ def export_year():
     rows = cur.fetchall()
     cur.close()
     conn.close()
+
     return send_file(export_csv(rows), as_attachment=True)
