@@ -6,52 +6,51 @@
 }
 
 body {
-    background-color: #0b2f2c;
+    background-color: #0b2f2d;
     height: 100vh;
-    overflow: hidden;
+    width: 100vw;
 }
 
-/* MAIN LAYOUT */
-.container {
-    display: grid;
-    grid-template-columns: 1fr 2px 1fr;
+.page {
+    display: flex;
     height: 100vh;
+    width: 100vw;
 }
 
-/* LEFT */
-.left-panel {
+/* LEFT SIDE */
+.left {
+    flex: 1;
     padding: 40px;
     color: white;
 }
 
-/* HEADER */
-.header {
-    display: grid;
-    grid-template-columns: auto 1fr auto;
+.logos {
+    display: flex;
+    justify-content: space-between;
     align-items: center;
-    gap: 20px;
 }
 
 .logo {
-    width: 90px;
-    height: 90px;
-    object-fit: contain;
+    width: 110px;
+    height: auto;
 }
 
-.header h1 {
-    font-size: 20px;
-    line-height: 1.4;
-    text-align: center;
+.left h1 {
+    margin-top: 30px;
+    font-size: 22px;
     font-weight: 600;
+    line-height: 1.4;
 }
 
 /* DIVIDER */
 .divider {
-    background-color: rgba(255,255,255,0.3);
+    width: 2px;
+    background-color: rgba(255, 255, 255, 0.3);
 }
 
-/* RIGHT */
-.right-panel {
+/* RIGHT SIDE */
+.right {
+    flex: 1;
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -59,37 +58,36 @@ body {
     color: white;
 }
 
-.right-panel h2 {
+.right h2 {
     margin-bottom: 25px;
     font-size: 22px;
     font-weight: 600;
 }
 
-/* LOGIN FORM */
 form {
-    width: 320px;
+    display: flex;
+    flex-direction: column;
+    width: 280px;
 }
 
 input {
-    width: 100%;
     padding: 14px;
-    margin-bottom: 14px;
+    margin-bottom: 15px;
     border: none;
     border-radius: 4px;
     font-size: 14px;
 }
 
 button {
-    width: 100%;
     padding: 12px;
-    background: transparent;
-    border: 1px solid white;
+    background-color: transparent;
     color: white;
-    font-size: 15px;
+    border: 1px solid white;
     cursor: pointer;
+    font-size: 14px;
 }
 
 button:hover {
-    background: white;
-    color: #0b2f2c;
+    background-color: white;
+    color: #0b2f2d;
 }

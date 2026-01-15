@@ -7,28 +7,29 @@
 </head>
 <body>
 
-<div class="container">
+<div class="page">
 
-    <!-- LEFT SIDE -->
-    <div class="left-panel">
-        <div class="header">
-            <img src="{{ url_for('static', filename='images/left_logo.png') }}" class="logo">
-            <h1>
-                Bhutan Exporters Association<br>
-                Phuentsholing Regional Chapter
-            </h1>
-            <img src="{{ url_for('static', filename='images/right_logo.png') }}" class="logo">
+    <!-- LEFT SECTION -->
+    <div class="left">
+        <div class="logos">
+            <img src="{{ url_for('static', filename='images/left_logo.png') }}" class="logo left-logo">
+            <img src="{{ url_for('static', filename='images/right_logo.png') }}" class="logo right-logo">
         </div>
+
+        <h1>
+            Bhutan Exporters Association<br>
+            Phuentsholing Regional Chapter
+        </h1>
     </div>
 
-    <!-- DIVIDER -->
+    <!-- CENTER DIVIDER -->
     <div class="divider"></div>
 
-    <!-- RIGHT SIDE -->
-    <div class="right-panel">
+    <!-- RIGHT SECTION -->
+    <div class="right">
         <h2>BEA parking</h2>
 
-        <form method="POST">
+        <form method="POST" action="/login">
             <input type="text" name="username" placeholder="USERNAME" required>
             <input type="password" name="password" placeholder="PASSWORD" required>
             <button type="submit">Login</button>
