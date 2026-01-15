@@ -7,40 +7,22 @@
 </head>
 <body>
 
-    <a href="/logout" class="logout">Logout</a>
+<a href="/logout" class="logout">Logout</a>
 
-    <h1>BEA Vehicle QR system</h1>
+<h2>BEA Vehicle QR system</h2>
 
-    <div class="container">
+<div class="container">
 
-        <!-- Generate QR -->
-        <form method="POST" action="/generate">
-            <input type="text" name="vehicle" placeholder="Vehicle Number" required>
-            <input type="date" name="date" required>
-            <button type="submit">Generate QR</button>
-        </form>
+    <!-- Generate QR -->
+    <form method="POST" action="/generate">
+        <input type="text" name="vehicle_number" placeholder="Vehicle Number" required>
+        <input type="date" name="date">
+        <button type="submit">Generate QR</button>
+    </form>
 
-        <hr>
+    <!-- Export disabled temporarily -->
 
-        <!-- Export Logs -->
-        <h3>Export Vehicle Logs (csv)</h3>
-
-        <form method="GET" action="/export/day">
-            <input type="date" name="date" required>
-            <button type="submit">Export Day</button>
-        </form>
-
-        <form method="GET" action="/export/month">
-            <input type="text" name="month" placeholder="MM" required>
-            <button type="submit">Export Month</button>
-        </form>
-
-        <form method="GET" action="/export/year">
-            <input type="number" name="year" placeholder="YYYY" required>
-            <button type="submit">Export Year</button>
-        </form>
-
-    </div>
+</div>
 
 </body>
 </html>
