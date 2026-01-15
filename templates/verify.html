@@ -1,90 +1,12 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <title>BEA Vehicle Verification</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+{% if status == "VALID" %}
+    <h1 style="color: green;">✅ VALID</h1>
+    <p><strong>Vehicle:</strong> {{ vehicle }}</p>
+    <p><strong>Expires:</strong> {{ expires }}</p>
 
-    <style>
-        body {
-            margin: 0;
-            height: 100vh;
-            background: #062b2b;
-            font-family: Arial, sans-serif;
-            color: white;
-            display: flex;
-            justify-content: center;
-            align-items: flex-start;
-        }
+{% elif status == "EXPIRED" %}
+    <h1 style="color: red;">❌ EXPIRED</h1>
+    <p><strong>Vehicle:</strong> {{ vehicle }}</p>
 
-        .container {
-            margin-top: 60px;
-            width: 100%;
-            max-width: 420px;
-            padding: 20px;
-        }
-
-        h1 {
-            text-align: center;
-            font-size: 22px;
-            font-weight: 500;
-            margin-bottom: 50px;
-        }
-
-        .row {
-            margin-bottom: 25px;
-            font-size: 18px;
-        }
-
-        .label {
-            opacity: 0.85;
-        }
-
-        .value {
-            margin-top: 5px;
-            font-weight: 500;
-        }
-
-        .status-valid {
-            color: #7CFFB2;
-            font-weight: bold;
-        }
-
-        .status-expired {
-            color: #FF9A9A;
-            font-weight: bold;
-        }
-    </style>
-</head>
-<body>
-
-<div class="container">
-    <h1>BEA Vehicle Verification</h1>
-
-    <div class="row">
-        <div class="label">Vehicle Number:</div>
-        <div class="value">{{ vehicle }}</div>
-    </div>
-
-    <div class="row">
-        <div class="label">Expiry Date:</div>
-        <div class="value">{{ expiry }}</div>
-    </div>
-
-    <div class="row">
-        <div class="label">Generated At:</div>
-        <div class="value">{{ created }}</div>
-    </div>
-
-    <div class="row">
-        <div class="label">Status:</div>
-        {% if status == "VALID" %}
-            <div class="value status-valid">VALID</div>
-        {% else %}
-            <div class="value status-expired">EXPIRED</div>
-        {% endif %}
-    </div>
-</div>
-
-</body>
-</html>
+{% else %}
+    <h1 style="color: red;">❌ INVALID QR</h1>
+{% endif %}

@@ -5,45 +5,53 @@
     <title>BEA Vehicle QR system</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
 </head>
+
 <body>
 
-<!-- HEADER -->
-<div class="top-bar">
-    <img src="{{ url_for('static', filename='images/left_logo.png') }}" class="logo left">
+    <!-- TOP LOGOS -->
+    <div class="top-bar">
+        <img src="{{ url_for('static', filename='images/left_logo.png') }}" class="logo left">
+        <h1>BEA Vehicle QR system</h1>
+        <img src="{{ url_for('static', filename='images/right_logo.png') }}" class="logo right">
+    </div>
 
-    <h1>BEA Vehicle QR system</h1>
+    <!-- MAIN CONTENT -->
+    <div class="container">
 
-    <img src="{{ url_for('static', filename='images/right_logo.png') }}" class="logo right">
-</div>
+        <!-- GENERATE QR FORM -->
+        <form method="POST" action="/generate" class="qr-form">
+            <input
+                type="text"
+                name="vehicle"
+                placeholder="Vehicle Number"
+                required
+            >
 
-<!-- FORM AREA -->
-<div class="center-area">
+            <input
+                type="date"
+                name="date"
+                required
+            >
 
-    <form method="POST" action="{{ url_for('generate_qr') }}" class="qr-form">
+            <button type="submit">Generate QR</button>
+        </form>
 
-        <input
-            type="text"
-            name="vehicle"
-            placeholder="Vehicle Number"
-            required
-        >
+        <!-- QR RESULT -->
+        {% if qr_image %}
+        <div class="qr-result">
+            <h2>{{ seq_no }} &nbsp; QR Generated</h2>
+            <p><strong>Vehicle Number:</strong> {{ vehicle_number }}</p>
+            <img src="{{ qr_image }}" alt="QR Code">
+            <p class="validity">
+                Valid for 2 days (Generated day + Next day)
+            </p>
+        </div>
+        {% endif %}
 
-        <input
-            type="date"
-            name="date"
-            required
-        >
+    </div>
 
-        <button type="submit">Generate QR</button>
-
-    </form>
-
-</div>
-
-<!-- LOGOUT -->
-<div class="logout">
-    <a href="{{ url_for('logout') }}">Logout</a>
-</div>
+    <!-- LOGOUT -->
+    <a href="/logout" class="logout">Logout</a>
 
 </body>
 </html>
