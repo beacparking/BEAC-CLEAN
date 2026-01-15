@@ -1,90 +1,125 @@
-from flask import Flask, render_template, request, redirect, url_for
-import psycopg2
-import psycopg2.extras
-import qrcode
+from flask import Flask, render_template, request, redirect
 import os
-from datetime import datetime, timedelta
-from io import BytesIO
-import base64
+import psycopg2
+from datetime import datetime, timedelta, date
+import qrcode
+import uuid
 
 app = Flask(__name__)
-app.secret_key = os.environ.get("FLASK_SECRET_KEY", "fallback-secret")
+app.secret_key = os.environ.get("FLASK_SECRET_KEY", "dev-secret")
 
 DATABASE_URL = os.environ.get("DATABASE_URL")
 
+# -------------------------
+# DB CONNECTION
+# -------------------------
 def get_db():
-    return psycopg2.connect(DATABASE_URL, sslmode="require")
+    return psycopg2.connect(DATABASE_URL)
 
-# ✅ ROOT ROUTE (FIXES YOUR ISSUE)
+# -------------------------
+# ROOT → LOGIN
+# -------------------------
 @app.route("/")
-def home():
-    return redirect(url_for("admin"))
+def login_page():
+    return render_template("login.html")
 
-@app.route("/admin", methods=["GET", "POST"])
+# -------------------------
+# LOGIN ACTION
+# -------------------------
+@app.route("/login", methods=["POST"])
+def login():
+    username = request.form.get("username")
+    password = request.form.get("password")
+
+    if (
+        username == os.environ.get("ADMIN_USERNAME")
+        and password == os.environ.get("ADMIN_PASSWORD")
+    ):
+        return redirect("/admin")
+
+    return render_template("login.html", error="Invalid credentials")
+
+# -------------------------
+# ADMIN PAGE
+# -------------------------
+@app.route("/admin")
 def admin():
-    qr_image = None
-    seq_no = None
+    return render_template("admin.html")
 
-    if request.method == "POST":
-        vehicle_number = request.form["vehicle"]
-        generated_date = datetime.strptime(request.form["date"], "%Y-%m-%d").date()
-        expires_date = generated_date + timedelta(days=2)
+# -------------------------
+# GENERATE QR
+# -------------------------
+@app.route("/generate_qr", methods=["POST"])
+def generate_qr():
+    vehicle_number = request.form["vehicle_number"]
+    generated_date = datetime.strptime(request.form["date"], "%Y-%m-%d").date()
+    expires_date = generated_date + timedelta(days=1)
 
-        conn = get_db()
-        cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+    qr_id = str(uuid.uuid4())
 
-        cur.execute("""
-            INSERT INTO vehicle_qr (vehicle_number, generated_date, expires_date)
-            VALUES (%s, %s, %s)
-            RETURNING id
-        """, (vehicle_number, generated_date, expires_date))
-
-        record_id = cur.fetchone()[0]
-        conn.commit()
-
-        cur.execute("SELECT COUNT(*) FROM vehicle_qr")
-        seq_no = cur.fetchone()[0]
-
-        cur.close()
-        conn.close()
-
-        qr_url = url_for("verify", qr_id=record_id, _external=True)
-
-        qr = qrcode.make(qr_url)
-        buffer = BytesIO()
-        qr.save(buffer, format="PNG")
-        qr_image = base64.b64encode(buffer.getvalue()).decode()
-
-    return render_template(
-        "admin.html",
-        qr_image=qr_image,
-        seq_no=seq_no
-    )
-
-@app.route("/verify/<int:qr_id>")
-def verify(qr_id):
     conn = get_db()
-    cur = conn.cursor(cursor_factory=psycopg2.extras.DictCursor)
+    cur = conn.cursor()
 
-    cur.execute("SELECT * FROM vehicle_qr WHERE id = %s", (qr_id,))
-    record = cur.fetchone()
+    cur.execute("""
+        INSERT INTO vehicle_qr (id, vehicle_number, generated_date, expires_date)
+        VALUES (%s, %s, %s, %s)
+        RETURNING id;
+    """, (qr_id, vehicle_number, generated_date, expires_date))
 
+    conn.commit()
     cur.close()
     conn.close()
 
-    if not record:
+    # Generate QR image
+    qr_url = request.host_url + "verify/" + qr_id
+    img = qrcode.make(qr_url)
+
+    qr_path = f"static/qr/{qr_id}.png"
+    os.makedirs("static/qr", exist_ok=True)
+    img.save(qr_path)
+
+    return render_template(
+        "admin.html",
+        qr_image=qr_path,
+        vehicle_number=vehicle_number
+    )
+
+# -------------------------
+# VERIFY QR (SCAN)
+# -------------------------
+@app.route("/verify/<qr_id>")
+def verify(qr_id):
+    conn = get_db()
+    cur = conn.cursor()
+
+    cur.execute("""
+        SELECT vehicle_number, generated_date, expires_date
+        FROM vehicle_qr
+        WHERE id = %s
+    """, (qr_id,))
+
+    row = cur.fetchone()
+    cur.close()
+    conn.close()
+
+    if not row:
         return "INVALID QR", 404
 
-    today = datetime.utcnow().date()
-    status = "VALID" if today <= record["expires_date"] else "EXPIRED"
+    vehicle_number, generated_date, expires_date = row
+    today = date.today()
+
+    status = "VALID" if today <= expires_date else "EXPIRED"
 
     return render_template(
         "verify.html",
+        vehicle_number=vehicle_number,
         status=status,
-        vehicle_number=record["vehicle_number"],
-        generated_date=record["generated_date"],
-        expires_date=record["expires_date"]
+        generated_date=generated_date,
+        expires_date=expires_date
     )
 
+# -------------------------
+# RUN
+# -------------------------
 if __name__ == "__main__":
     app.run(debug=True)
