@@ -3,6 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <title>BEA Parking Login</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <!-- IMPORTANT: Flask static path -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
 </head>
 <body>
@@ -12,8 +15,8 @@
     <!-- LEFT PANEL -->
     <div class="left">
         <div class="logos">
-            <img src="{{ url_for('static', filename='images/bhutan_emblem.png') }}" class="logo">
-            <img src="{{ url_for('static', filename='images/bea_logo.png') }}" class="logo">
+            <img src="{{ url_for('static', filename='images/bea-logo-left.png') }}" alt="Left Logo">
+            <img src="{{ url_for('static', filename='images/bea-logo-right.png') }}" alt="Right Logo">
         </div>
 
         <h1>
