@@ -3,76 +3,68 @@ import os
 import psycopg2
 from datetime import datetime
 import qrcode
-import csv
-from io import StringIO, BytesIO
 
 app = Flask(__name__)
-app.secret_key = "bea_secret_key"
+app.secret_key = os.environ.get("SECRET_KEY", "bea_secret_key")
 
-# -----------------------------
-# ADMIN LOGIN
-# -----------------------------
+# =============================
+# CONFIG
+# =============================
 ADMIN_USERNAME = "admin"
 ADMIN_PASSWORD = "admin123"
 
-# -----------------------------
-# DATABASE (Render PostgreSQL)
-# -----------------------------
-DATABASE_URL = os.environ.get("DATABASE_URL")
-
-def get_db():
-    return psycopg2.connect(DATABASE_URL)
-
-# -----------------------------
-# QR STORAGE
-# -----------------------------
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 QR_FOLDER = os.path.join(BASE_DIR, "static", "qr")
 os.makedirs(QR_FOLDER, exist_ok=True)
 
-# -----------------------------
-# HOME
-# -----------------------------
-@app.route("/")
+DATABASE_URL = os.environ.get("DATABASE_URL")
+
+# =============================
+# DATABASE CONNECTION
+# =============================
+def get_db():
+    return psycopg2.connect(DATABASE_URL, sslmode="require")
+
+# =============================
+# LOGIN
+# =============================
+@app.route("/", methods=["GET"])
 def home():
     return redirect(url_for("login"))
 
-# -----------------------------
-# LOGIN
-# -----------------------------
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
-        if (
-            request.form.get("username") == ADMIN_USERNAME
-            and request.form.get("password") == ADMIN_PASSWORD
-        ):
+        username = request.form.get("username")
+        password = request.form.get("password")
+
+        if username == ADMIN_USERNAME and password == ADMIN_PASSWORD:
             session["logged_in"] = True
             return redirect(url_for("admin"))
         return render_template("login.html", error="Invalid credentials")
 
     return render_template("login.html")
 
-# -----------------------------
+# =============================
 # ADMIN DASHBOARD
-# -----------------------------
+# =============================
 @app.route("/admin")
 def admin():
     if not session.get("logged_in"):
         return redirect(url_for("login"))
     return render_template("admin.html")
 
-# -----------------------------
+# =============================
 # LOGOUT
-# -----------------------------
+# =============================
 @app.route("/logout")
 def logout():
     session.clear()
     return redirect(url_for("login"))
 
-# -----------------------------
-# GENERATE QR (POSTGRES)
-# -----------------------------
+# =============================
+# GENERATE QR
+# =============================
 @app.route("/generate", methods=["POST"])
 def generate_qr():
     if not session.get("logged_in"):
@@ -88,27 +80,51 @@ def generate_qr():
     qr_filename = f"{vehicle_number}_{date}.png"
     qr_path = os.path.join(QR_FOLDER, qr_filename)
 
-    qr = qrcode.make(qr_data)
-    qr.save(qr_path)
+    qrcode.make(qr_data).save(qr_path)
 
     conn = get_db()
     cur = conn.cursor()
-    cur.execute(
-        """
-        INSERT INTO vehicle_logs (vehicle_number, entry_date, qr_file)
+    cur.execute("""
+        INSERT INTO vehicle_logs (vehicle_number, log_date, qr_file)
         VALUES (%s, %s, %s)
-        """,
-        (vehicle_number, date, qr_filename),
-    )
+    """, (vehicle_number, date, qr_filename))
     conn.commit()
     cur.close()
     conn.close()
 
     return redirect(url_for("admin"))
 
-# -----------------------------
-# EXPORT CSV (POSTGRES)
-# -----------------------------
+# =============================
+# VERIFY QR (PUBLIC)
+# =============================
+@app.route("/verify")
+def verify():
+    vehicle_number = request.args.get("vehicle")
+    date = request.args.get("date")
+
+    if not vehicle_number or not date:
+        return render_template("verify.html", valid=False)
+
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute("""
+        SELECT id FROM vehicle_logs
+        WHERE vehicle_number = %s AND log_date = %s
+    """, (vehicle_number, date))
+    result = cur.fetchone()
+    cur.close()
+    conn.close()
+
+    return render_template(
+        "verify.html",
+        valid=bool(result),
+        vehicle=vehicle_number,
+        date=date
+    )
+
+# =============================
+# EXPORT CSV (ALL DATA)
+# =============================
 @app.route("/export")
 def export_all():
     if not session.get("logged_in"):
@@ -116,31 +132,25 @@ def export_all():
 
     conn = get_db()
     cur = conn.cursor()
-    cur.execute(
-        "SELECT vehicle_number, entry_date, qr_file FROM vehicle_logs ORDER BY entry_date DESC"
-    )
+    cur.execute("""
+        SELECT vehicle_number, log_date, created_at
+        FROM vehicle_logs
+        ORDER BY created_at DESC
+    """)
     rows = cur.fetchall()
     cur.close()
     conn.close()
 
-    si = StringIO()
-    writer = csv.writer(si)
-    writer.writerow(["Vehicle Number", "Date", "QR File"])
-    writer.writerows(rows)
+    file_path = os.path.join(BASE_DIR, "export.csv")
+    with open(file_path, "w") as f:
+        f.write("Vehicle Number,Date,Created At\n")
+        for r in rows:
+            f.write(f"{r[0]},{r[1]},{r[2]}\n")
 
-    output = BytesIO()
-    output.write(si.getvalue().encode("utf-8"))
-    output.seek(0)
+    return send_file(file_path, as_attachment=True)
 
-    return send_file(
-        output,
-        mimetype="text/csv",
-        as_attachment=True,
-        download_name="vehicle_logs.csv",
-    )
-
-# -----------------------------
+# =============================
 # RUN
-# -----------------------------
+# =============================
 if __name__ == "__main__":
     app.run(debug=True)
