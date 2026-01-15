@@ -1,88 +1,66 @@
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-    font-family: Arial, sans-serif;
-}
-
 body {
-    background-color: #0f3d3e;
+    margin: 0;
     height: 100vh;
-}
-
-.page {
-    height: 100vh;
+    background-color: #0b3d3b;
+    font-family: Arial, sans-serif;
+    color: white;
     display: flex;
     flex-direction: column;
+    align-items: center;
+    justify-content: center;
 }
 
-/* Header */
-.header {
-    position: relative;
-    text-align: center;
-    padding-top: 40px;
-}
-
-.header h1 {
-    color: white;
-    font-size: 32px;
-    font-weight: normal;
+.title {
+    margin-bottom: 40px;
+    font-size: 28px;
+    letter-spacing: 1px;
 }
 
 .logo {
-    width: 80px;
-    height: auto;
     position: absolute;
     top: 20px;
+    width: 80px;
 }
 
-.logo.left {
-    left: 40px;
+.left-logo {
+    left: 20px;
 }
 
-.logo.right {
-    right: 40px;
+.right-logo {
+    right: 20px;
 }
 
-/* Center form */
-.center-box {
-    flex: 1;
+.form-container {
     display: flex;
-    justify-content: center;
+    flex-direction: column;
     align-items: center;
 }
 
-.center-box form {
-    display: flex;
-    flex-direction: column;
-    gap: 15px;
-}
-
-.center-box input {
+form input {
     width: 220px;
     padding: 10px;
-    font-size: 14px;
+    margin-bottom: 15px;
     border-radius: 4px;
     border: none;
 }
 
-.center-box button {
-    width: 140px;
-    padding: 10px;
-    font-size: 14px;
-    background-color: transparent;
-    color: white;
+form button {
+    padding: 10px 20px;
     border: 1px solid white;
+    background: transparent;
+    color: white;
     cursor: pointer;
 }
 
-/* Footer */
-.footer {
-    text-align: right;
-    padding: 20px 30px;
+form button:hover {
+    background: white;
+    color: #0b3d3b;
 }
 
-.footer a {
+.logout {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
     color: white;
     text-decoration: none;
 }

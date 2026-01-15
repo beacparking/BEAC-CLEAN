@@ -7,41 +7,24 @@
 </head>
 <body>
 
-<div class="page">
+<!-- Logos -->
+<img src="{{ url_for('static', filename='images/left_logo.png') }}" class="logo left-logo">
+<img src="{{ url_for('static', filename='images/right_logo.png') }}" class="logo right-logo">
 
-    <!-- Header -->
-    <div class="header">
-        <img src="{{ url_for('static', filename='images/logo_left.png') }}" class="logo left">
-        <h1>BEA Vehicle QR system</h1>
-        <img src="{{ url_for('static', filename='images/logo_right.png') }}" class="logo right">
-    </div>
+<!-- Title -->
+<h1 class="title">BEA Vehicle QR system</h1>
 
-    <!-- Center Form -->
-    <div class="center-box">
-        <form method="POST" action="/admin">
-            <input 
-                type="text" 
-                name="vehicle_number" 
-                placeholder="Vehicle Number" 
-                required
-            >
-
-            <input 
-                type="date" 
-                name="generated_date" 
-                required
-            >
-
-            <button type="submit">Generate QR</button>
-        </form>
-    </div>
-
-    <!-- Footer -->
-    <div class="footer">
-        <a href="/logout">Logout</a>
-    </div>
-
+<!-- Form -->
+<div class="form-container">
+    <form method="POST" action="/admin">
+        <input type="text" name="vehicle_number" placeholder="Vehicle Number" required>
+        <input type="date" name="generated_date" required>
+        <button type="submit">Generate QR</button>
+    </form>
 </div>
+
+<!-- Logout -->
+<a href="/logout" class="logout">Logout</a>
 
 </body>
 </html>
