@@ -79,24 +79,37 @@ def generate():
         return redirect(url_for("login"))
 
     vehicle = request.form.get("vehicle_number")
-    date_str = request.form.get("date")
+    log_date = request.form.get("date")
 
     if not vehicle:
         return redirect(url_for("admin"))
 
-    log_date = datetime.strptime(date_str, "%Y-%m-%d").date() if date_str else datetime.today().date()
+    if not log_date:
+        log_date = datetime.now().date()
+
+    # QR data
     qr_data = f"{vehicle}|{log_date}"
 
-    qr = qrcode.make(qr_data)
-    qr_path = os.path.join("static/qr", f"{vehicle}_{log_date}.png")
-    os.makedirs("static/qr", exist_ok=True)
-    qr.save(qr_path)
+    # Create QR folder if not exists
+    qr_dir = os.path.join("static", "qr")
+    os.makedirs(qr_dir, exist_ok=True)
 
+    qr_filename = f"{vehicle}_{log_date}.png"
+    qr_path = os.path.join(qr_dir, qr_filename)
+
+    # Generate QR image
+    img = qrcode.make(qr_data)
+    img.save(qr_path)
+
+    # Save to PostgreSQL
     conn = get_db()
     cur = conn.cursor()
     cur.execute(
-        "INSERT INTO vehicle_logs (vehicle_number, log_date, qr_data) VALUES (%s,%s,%s)",
-        (vehicle, log_date, qr_data)
+        """
+        INSERT INTO vehicle_logs (vehicle, log_date, qr_data)
+        VALUES (%s, %s, %s)
+        """,
+        (vehicle, log_date, qr_filename)
     )
     conn.commit()
     cur.close()
