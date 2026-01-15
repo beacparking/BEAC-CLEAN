@@ -3,41 +3,39 @@
 <head>
   <meta charset="UTF-8">
   <title>BEA Parking Login</title>
-
-  <!-- FORCE CSS RELOAD -->
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}?v=99">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
 </head>
+
 <body>
+  <div class="page">
 
-<div class="page">
+    <!-- LEFT PANEL -->
+    <div class="left-panel">
+      <img src="{{ url_for('static', filename='images/left_logo.png') }}" class="logo left-logo">
 
-  <!-- LEFT PANEL -->
-  <div class="left-panel">
-    <img src="{{ url_for('static', filename='image/left_logo.png') }}" class="logo left-logo">
-    <h1>
-      Bhutan Exporters Association<br>
-      Phuentsholing Regional Chapter
-    </h1>
+      <h1>
+        Bhutan Exporters Association<br>
+        Phuentsholing Regional Chapter
+      </h1>
+    </div>
+
+    <!-- CENTER LINE -->
+    <div class="divider"></div>
+
+    <!-- RIGHT PANEL -->
+    <div class="right-panel">
+      <img src="{{ url_for('static', filename='images/right_logo.png') }}" class="logo right-logo">
+
+      <h2>BEA parking</h2>
+
+      <!-- IMPORTANT: action="/" -->
+      <form method="POST" action="/">
+        <input type="text" name="username" placeholder="USERNAME" required>
+        <input type="password" name="password" placeholder="PASSWORD" required>
+        <button type="submit">Login</button>
+      </form>
+    </div>
+
   </div>
-
-  <!-- CENTER DIVIDER -->
-  <div class="divider"></div>
-
-  <!-- RIGHT PANEL -->
-  <div class="right-panel">
-    <img src="{{ url_for('static', filename='image/right_logo.png') }}" class="logo right-logo">
-
-    <h2>BEA parking</h2>
-
-    <!-- ⚠️ BACKEND WILL BE FIXED LATER -->
-    <form method="POST">
-      <input type="text" name="username" placeholder="USERNAME" required>
-      <input type="password" name="password" placeholder="PASSWORD" required>
-      <button type="submit">Login</button>
-    </form>
-  </div>
-
-</div>
-
 </body>
 </html>
