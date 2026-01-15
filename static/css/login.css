@@ -1,87 +1,87 @@
 * {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-    font-family: Arial, sans-serif;
+  box-sizing: border-box;
+  font-family: Arial, Helvetica, sans-serif;
 }
 
 body {
-    background: #0c2f2a;
-    height: 100vh;
+  margin: 0;
+  background-color: #0b2e2e;
+  color: white;
 }
 
+/* MAIN LAYOUT */
 .page {
-    display: flex;
-    height: 100vh;
-    width: 100vw;
+  display: flex;
+  height: 100vh;
 }
 
 /* LEFT */
 .left-panel {
-    width: 50%;
-    padding: 60px;
-    position: relative;
-    color: white;
+  width: 45%;
+  padding: 60px;
 }
 
 .left-panel h1 {
-    margin-top: 140px;
-    font-size: 26px;
-    line-height: 1.4;
-}
-
-/* RIGHT */
-.right-panel {
-    width: 50%;
-    padding: 60px;
-    position: relative;
-    color: white;
-}
-
-.right-panel h2 {
-    margin-top: 160px;
-    margin-bottom: 20px;
+  margin-top: 40px;
+  font-size: 22px;
+  line-height: 1.5;
 }
 
 /* LOGOS */
 .logo {
-    width: 120px;
-    position: absolute;
-    top: 30px;
+  width: 120px;
 }
 
 .left-logo {
-    left: 30px;
+  margin-bottom: 20px;
 }
 
 .right-logo {
-    right: 30px;
+  margin-bottom: 30px;
 }
 
 /* DIVIDER */
 .divider {
-    width: 2px;
-    background: rgba(255,255,255,0.3);
+  width: 1px;
+  background-color: rgba(255,255,255,0.3);
+}
+
+/* RIGHT */
+.right-panel {
+  width: 55%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.right-panel h2 {
+  margin-bottom: 25px;
 }
 
 /* FORM */
 form {
-    margin-top: 20px;
+  width: 280px;
 }
 
 input {
-    width: 300px;
-    padding: 12px;
-    margin-bottom: 15px;
-    border: none;
-    border-radius: 4px;
+  width: 100%;
+  padding: 12px;
+  margin-bottom: 15px;
+  border: none;
+  border-radius: 4px;
 }
 
 button {
-    width: 300px;
-    padding: 12px;
-    border: 1px solid white;
-    background: transparent;
-    color: white;
-    cursor: pointer;
+  width: 100%;
+  padding: 12px;
+  background: transparent;
+  border: 1px solid white;
+  color: white;
+  cursor: pointer;
+}
+
+button:hover {
+  background: white;
+  color: #0b2e2e;
 }
