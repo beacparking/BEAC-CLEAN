@@ -7,21 +7,42 @@
 </head>
 <body>
 
-<a href="/logout" class="logout">Logout</a>
+<!-- HEADER -->
+<div class="top-bar">
+    <img src="{{ url_for('static', filename='images/left_logo.png') }}" class="logo left">
 
-<h2>BEA Vehicle QR system</h2>
+    <h1>BEA Vehicle QR system</h1>
 
-<div class="container">
+    <img src="{{ url_for('static', filename='images/right_logo.png') }}" class="logo right">
+</div>
 
-    <!-- Generate QR -->
-    <form method="POST" action="/generate">
-        <input type="text" name="vehicle_number" placeholder="Vehicle Number" required>
-        <input type="date" name="date">
+<!-- FORM AREA -->
+<div class="center-area">
+
+    <form method="POST" action="{{ url_for('generate_qr') }}" class="qr-form">
+
+        <input
+            type="text"
+            name="vehicle"
+            placeholder="Vehicle Number"
+            required
+        >
+
+        <input
+            type="date"
+            name="date"
+            required
+        >
+
         <button type="submit">Generate QR</button>
+
     </form>
 
-    <!-- Export disabled temporarily -->
+</div>
 
+<!-- LOGOUT -->
+<div class="logout">
+    <a href="{{ url_for('logout') }}">Logout</a>
 </div>
 
 </body>
