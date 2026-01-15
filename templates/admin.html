@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <title>BEA Vehicle QR system</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
+    <!-- CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
 </head>
 <body>
@@ -18,29 +18,30 @@
         <img src="{{ url_for('static', filename='images/logo_right.png') }}" class="logo">
     </div>
 
-    <!-- Form Card -->
-    <div class="card">
-        <form method="POST" action="/admin">
+    <!-- Form -->
+    <form method="POST" action="/admin" class="form-box">
 
-            <input
-                type="text"
-                name="vehicle_number"
-                placeholder="Vehicle Number"
-                required
-            >
+        <input
+            type="text"
+            name="vehicle_number"
+            placeholder="Vehicle Number"
+            required
+        >
 
-            <input
-                type="date"
-                name="date"
-                required
-            >
+        <input
+            type="date"
+            name="generated_date"
+            required
+        >
 
-            <button type="submit">Generate QR</button>
-        </form>
-    </div>
+        <button type="submit">
+            Generate QR
+        </button>
+
+    </form>
 
     <!-- Logout -->
-    <a class="logout" href="/logout">Logout</a>
+    <a href="/logout" class="logout">Logout</a>
 
 </div>
 
