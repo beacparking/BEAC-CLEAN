@@ -7,38 +7,44 @@
 </head>
 <body>
 
-<!-- HEADER -->
-<div class="header">
-    <img src="{{ url_for('static', filename='images/left_logo.png') }}" class="logo left">
-    <div class="title">
-        <h1>Bhutan Exporters Association</h1>
-        <h2>Phuentsholing Regional Chapter</h2>
-    </div>
-    <img src="{{ url_for('static', filename='images/right_logo.png') }}" class="logo right">
-</div>
+    <!-- HEADER -->
+    <div class="header">
+        <img src="{{ url_for('static', filename='images/left_logo.png') }}" class="logo">
 
-<!-- MAIN CONTENT -->
-<div class="main">
-    <!-- LEFT IMAGE -->
-    <div class="left-section">
-        <img src="{{ url_for('static', filename='images/king.png') }}" class="hero">
+        <div class="header-text">
+            <h1>Bhutan Exporters Association</h1>
+            <h2>Phuentsholing Regional Chapter</h2>
+        </div>
+
+        <img src="{{ url_for('static', filename='images/right_logo.png') }}" class="logo">
     </div>
 
-    <!-- LOGIN BOX -->
-    <div class="right-section">
-        <h3>BEA parking</h3>
+    <!-- MAIN -->
+    <div class="main">
 
-        {% if error %}
-            <p class="error">{{ error }}</p>
-        {% endif %}
+        <!-- LEFT IMAGE -->
+        <div class="left">
+            <!-- 🔴 FIX IS HERE: person.png -->
+            <img src="{{ url_for('static', filename='images/person.png') }}" class="person">
+        </div>
 
-        <form method="POST">
-            <input type="text" name="username" placeholder="USERNAME" required>
-            <input type="password" name="password" placeholder="PASSWORD" required>
-            <button type="submit">Login</button>
-        </form>
+        <!-- LOGIN -->
+        <div class="right">
+            <form method="POST" class="login-box">
+                <h3>BEA parking</h3>
+
+                <input type="text" name="username" placeholder="USERNAME" required>
+                <input type="password" name="password" placeholder="PASSWORD" required>
+
+                <button type="submit">Login</button>
+
+                {% if error %}
+                    <p class="error">{{ error }}</p>
+                {% endif %}
+            </form>
+        </div>
+
     </div>
-</div>
 
 </body>
 </html>
