@@ -1,6 +1,5 @@
 flask
-gunicorn
-qrcode
-pillow
-openpyxl
 psycopg2-binary
+qrcode	
+pillow
+gunicorn
