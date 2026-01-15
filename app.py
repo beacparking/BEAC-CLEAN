@@ -42,21 +42,19 @@ def admin():
         selected_date = request.form.get("generated_date")
 
         if not vehicle_number or not selected_date:
-            error = "Vehicle number and date are required"
-            return render_template("admin.html", qr=qr, error=error)
+            return render_template("admin.html", error="Vehicle number and date required")
 
         try:
             generated_date = datetime.strptime(selected_date, "%Y-%m-%d").date()
-        except:
-            error = "Invalid date"
-            return render_template("admin.html", qr=qr, error=error)
+        except ValueError:
+            return render_template("admin.html", error="Invalid date")
 
         expires_date = generated_date + timedelta(days=1)
 
         conn = get_db()
         cur = conn.cursor()
 
-        # 🔐 DUPLICATE LOCK (core fix)
+        # 🔒 DUPLICATE LOCK (Option A)
         cur.execute("""
             SELECT id, expires_date
             FROM vehicle_qr
@@ -67,22 +65,21 @@ def admin():
         existing = cur.fetchone()
 
         if existing:
-            # ✅ Reuse existing token
-            sequence_no = existing[0]
-            expires_date = existing[1]
+            sequence_no, expires_date = existing
         else:
-            # 🆕 Create new token
             cur.execute("""
                 INSERT INTO vehicle_qr (vehicle_number, generated_date, expires_date)
                 VALUES (%s, %s, %s)
                 RETURNING id
             """, (vehicle_number, generated_date, expires_date))
+
             sequence_no = cur.fetchone()[0]
             conn.commit()
 
+        cur.close()
         conn.close()
 
-        # ---------------- QR GENERATION ----------------
+        # ---------- QR GENERATION ----------
         qr_url = f"{request.host_url}verify/{sequence_no}"
         qr_img = qrcode.make(qr_url)
 
@@ -112,6 +109,7 @@ def verify(qr_id):
     """, (qr_id,))
 
     record = cur.fetchone()
+    cur.close()
     conn.close()
 
     if not record:
