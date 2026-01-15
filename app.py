@@ -15,6 +15,11 @@ DATABASE_URL = os.environ.get("DATABASE_URL")
 def get_db():
     return psycopg2.connect(DATABASE_URL, sslmode="require")
 
+# ✅ ROOT ROUTE (FIXES YOUR ISSUE)
+@app.route("/")
+def home():
+    return redirect(url_for("admin"))
+
 @app.route("/admin", methods=["GET", "POST"])
 def admin():
     qr_image = None
@@ -71,7 +76,6 @@ def verify(qr_id):
         return "INVALID QR", 404
 
     today = datetime.utcnow().date()
-
     status = "VALID" if today <= record["expires_date"] else "EXPIRED"
 
     return render_template(
