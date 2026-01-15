@@ -2,36 +2,45 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>BEA Vehicle QR System</title>
+    <title>BEA Vehicle QR system</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
 </head>
 <body>
 
-<a href="/logout" class="logout">Logout</a>
+    <a href="/logout" class="logout">Logout</a>
 
-<h1>BEA Vehicle QR system</h1>
+    <h1>BEA Vehicle QR system</h1>
 
-<form method="POST" action="/generate">
-    <input type="text" placeholder="Vehicle Number" required>
-    <input type="date" required>
-    <button type="submit">Generate QR</button>
-</form>
+    <div class="container">
 
-<hr>
+        <!-- Generate QR -->
+        <form method="POST" action="/generate">
+            <input type="text" name="vehicle" placeholder="Vehicle Number" required>
+            <input type="date" name="date" required>
+            <button type="submit">Generate QR</button>
+        </form>
 
-<h3>Export Vehicle Logs (csv)</h3>
+        <hr>
 
-<input type="date">
-<button>Export Day</button>
+        <!-- Export Logs -->
+        <h3>Export Vehicle Logs (csv)</h3>
 
-<input type="text" placeholder="Month">
-<button>Export Month</button>
+        <form method="GET" action="/export/day">
+            <input type="date" name="date" required>
+            <button type="submit">Export Day</button>
+        </form>
 
-<select>
-    <option>2026</option>
-    <option>2025</option>
-</select>
-<button>Export Year</button>
+        <form method="GET" action="/export/month">
+            <input type="text" name="month" placeholder="MM" required>
+            <button type="submit">Export Month</button>
+        </form>
+
+        <form method="GET" action="/export/year">
+            <input type="number" name="year" placeholder="YYYY" required>
+            <button type="submit">Export Year</button>
+        </form>
+
+    </div>
 
 </body>
 </html>
