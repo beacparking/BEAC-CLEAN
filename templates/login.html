@@ -3,18 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <title>BEA Parking Login</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
+
+    <!-- FORCE CSS RELOAD -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}?v=3">
+
 </head>
 <body>
 
 <div class="page">
 
-    <!-- LEFT SECTION -->
-    <div class="left">
-        <div class="logos">
-            <img src="{{ url_for('static', filename='images/left_logo.png') }}" class="logo left-logo">
-            <img src="{{ url_for('static', filename='images/right_logo.png') }}" class="logo right-logo">
-        </div>
+    <!-- LEFT PANEL -->
+    <div class="left-panel">
+        <img src="{{ url_for('static', filename='image/left_logo.png') }}" class="logo left-logo">
 
         <h1>
             Bhutan Exporters Association<br>
@@ -22,11 +22,13 @@
         </h1>
     </div>
 
-    <!-- CENTER DIVIDER -->
+    <!-- CENTER LINE -->
     <div class="divider"></div>
 
-    <!-- RIGHT SECTION -->
-    <div class="right">
+    <!-- RIGHT PANEL -->
+    <div class="right-panel">
+        <img src="{{ url_for('static', filename='image/right_logo.png') }}" class="logo right-logo">
+
         <h2>BEA parking</h2>
 
         <form method="POST" action="/login">

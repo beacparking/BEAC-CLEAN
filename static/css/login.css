@@ -2,13 +2,12 @@
     margin: 0;
     padding: 0;
     box-sizing: border-box;
-    font-family: Arial, Helvetica, sans-serif;
+    font-family: Arial, sans-serif;
 }
 
 body {
-    background-color: #0b2f2d;
+    background: #0c2f2a;
     height: 100vh;
-    width: 100vw;
 }
 
 .page {
@@ -17,77 +16,72 @@ body {
     width: 100vw;
 }
 
-/* LEFT SIDE */
-.left {
-    flex: 1;
-    padding: 40px;
+/* LEFT */
+.left-panel {
+    width: 50%;
+    padding: 60px;
+    position: relative;
     color: white;
 }
 
-.logos {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-.logo {
-    width: 110px;
-    height: auto;
-}
-
-.left h1 {
-    margin-top: 30px;
-    font-size: 22px;
-    font-weight: 600;
+.left-panel h1 {
+    margin-top: 140px;
+    font-size: 26px;
     line-height: 1.4;
+}
+
+/* RIGHT */
+.right-panel {
+    width: 50%;
+    padding: 60px;
+    position: relative;
+    color: white;
+}
+
+.right-panel h2 {
+    margin-top: 160px;
+    margin-bottom: 20px;
+}
+
+/* LOGOS */
+.logo {
+    width: 120px;
+    position: absolute;
+    top: 30px;
+}
+
+.left-logo {
+    left: 30px;
+}
+
+.right-logo {
+    right: 30px;
 }
 
 /* DIVIDER */
 .divider {
     width: 2px;
-    background-color: rgba(255, 255, 255, 0.3);
+    background: rgba(255,255,255,0.3);
 }
 
-/* RIGHT SIDE */
-.right {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    color: white;
-}
-
-.right h2 {
-    margin-bottom: 25px;
-    font-size: 22px;
-    font-weight: 600;
-}
-
+/* FORM */
 form {
-    display: flex;
-    flex-direction: column;
-    width: 280px;
+    margin-top: 20px;
 }
 
 input {
-    padding: 14px;
+    width: 300px;
+    padding: 12px;
     margin-bottom: 15px;
     border: none;
     border-radius: 4px;
-    font-size: 14px;
 }
 
 button {
+    width: 300px;
     padding: 12px;
-    background-color: transparent;
-    color: white;
     border: 1px solid white;
+    background: transparent;
+    color: white;
     cursor: pointer;
-    font-size: 14px;
-}
-
-button:hover {
-    background-color: white;
-    color: #0b2f2d;
 }
