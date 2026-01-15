@@ -3,34 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <title>BEA Parking Login</title>
-
-    <link rel="stylesheet"
-          href="{{ url_for('static', filename='css/login.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
 </head>
-
 <body>
-<div class="page">
 
-    <!-- TOP HEADER -->
-    <div class="header">
-        <img src="{{ url_for('static', filename='images/left_logo.png') }}" class="logo left">
-        <h1>
+<div class="container">
+
+    <div class="top">
+        <img src="{{ url_for('static', filename='images/left_logo.png') }}" class="logo">
+        <div class="title">
             Bhutan Exporters Association<br>
             Phuentsholing Regional Chapter
-        </h1>
-        <img src="{{ url_for('static', filename='images/right_logo.png') }}" class="logo right">
+        </div>
+        <img src="{{ url_for('static', filename='images/right_logo.png') }}" class="logo">
     </div>
 
-    <!-- MAIN CONTENT -->
     <div class="content">
-
-        <!-- LEFT IMAGE -->
-        <div class="image-panel">
-            <img src="{{ url_for('static', filename='images/person.png') }}" alt="Person">
+        <div class="left">
+            <img src="{{ url_for('static', filename='images/person.png') }}" class="person">
         </div>
 
-        <!-- RIGHT LOGIN -->
-        <div class="login-panel">
+        <div class="right">
             <h2>BEA parking</h2>
 
             <form method="POST" action="/login">
@@ -39,8 +32,9 @@
                 <button type="submit">Login</button>
             </form>
         </div>
-
     </div>
+
 </div>
+
 </body>
 </html>
