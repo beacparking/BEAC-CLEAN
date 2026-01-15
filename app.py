@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, session
+from flask import Flask, render_template, request, redirect, session
 import psycopg2
 import os
 import qrcode
@@ -28,7 +28,7 @@ def login():
 
     return render_template("login.html")
 
-# ---------------- ADMIN ----------------
+# ---------------- ADMIN (ONLY ROUTE FOR QR) ----------------
 @app.route("/admin", methods=["GET", "POST"])
 def admin():
     if not session.get("logged_in"):
@@ -39,8 +39,9 @@ def admin():
 
     if request.method == "POST":
         vehicle_number = request.form.get("vehicle_number")
-        selected_date = request.form.get("generated_date")
+        selected_date = request.form.get("date")
 
+        # HARD SAFETY (NO CRASH)
         if not vehicle_number or not selected_date:
             return render_template("admin.html", error="Vehicle number and date required")
 
@@ -54,12 +55,12 @@ def admin():
         conn = get_db()
         cur = conn.cursor()
 
-        # 🔒 DUPLICATE LOCK (Option A)
+        # -------- DUPLICATE LOCK (SAFE) --------
         cur.execute("""
             SELECT id, expires_date
             FROM vehicle_qr
             WHERE vehicle_number = %s
-              AND generated_date = %s
+            AND generated_date = %s
         """, (vehicle_number, generated_date))
 
         existing = cur.fetchone()
@@ -79,11 +80,11 @@ def admin():
         cur.close()
         conn.close()
 
-        # ---------- QR GENERATION ----------
+        # -------- QR GENERATION --------
+        os.makedirs("static/qr", exist_ok=True)
+
         qr_url = f"{request.host_url}verify/{sequence_no}"
         qr_img = qrcode.make(qr_url)
-
-        os.makedirs("static/qr", exist_ok=True)
         qr_path = f"static/qr/{sequence_no}.png"
         qr_img.save(qr_path)
 
