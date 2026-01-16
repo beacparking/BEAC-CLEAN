@@ -67,7 +67,7 @@ def admin():
             generated_date = datetime.strptime(selected_date, "%Y-%m-%d").date()
 
             # ✅ 2-day validity (Day 1 + Day 2)
-            expires_date = generated_date + timedelta(days=1)
+            expires_date = generated_date + timedelta(days=2)
 
             conn = get_db()
             cur = conn.cursor()
