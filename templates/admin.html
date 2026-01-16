@@ -33,9 +33,27 @@
 
 <h3>📤 Export CSV</h3>
 
-<a href="/admin/export/daily"><button>Export Daily</button></a>
-<a href="/admin/export/weekly"><button>Export Weekly</button></a>
-<a href="/admin/export/monthly"><button>Export Monthly</button></a>
+<form action="/admin/export/day" method="get">
+    <label>Select Day:</label><br>
+    <input type="date" name="date" required>
+    <button type="submit">Export Day</button>
+</form>
+
+<br>
+
+<form action="/admin/export/week" method="get">
+    <label>Select Any Date (last 7 days from it):</label><br>
+    <input type="date" name="date" required>
+    <button type="submit">Export Last 7 Days</button>
+</form>
+
+<br>
+
+<form action="/admin/export/month" method="get">
+    <label>Select Month:</label><br>
+    <input type="month" name="month" required>
+    <button type="submit">Export Month</button>
+</form>
 
 <hr>
 <a href="/logout">Logout</a>

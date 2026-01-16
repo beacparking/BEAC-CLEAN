@@ -37,6 +37,7 @@ def login():
             session["logged_in"] = True
             return redirect(url_for("admin"))
         return render_template("login.html", error="Invalid credentials")
+
     return render_template("login.html")
 
 @app.route("/logout")
@@ -69,46 +70,33 @@ def admin():
             cur = conn.cursor()
 
             try:
-                # 🔹 Calculate DAILY TOKEN (per day)
                 cur.execute("""
-                    SELECT COALESCE(MAX(daily_token), 0) + 1
-                    FROM vehicle_qr
-                    WHERE generated_date = %s
-                """, (generated_date,))
-                daily_token = cur.fetchone()[0]
-
-                # 🔹 Insert new QR
-                cur.execute("""
-                    INSERT INTO vehicle_qr
-                    (vehicle_number, generated_date, expires_date, daily_token)
-                    VALUES (%s, %s, %s, %s)
+                    INSERT INTO vehicle_qr (vehicle_number, generated_date, expires_date)
+                    VALUES (%s, %s, %s)
                     RETURNING id
-                """, (vehicle, generated_date, expires_date, daily_token))
-
-                token_id = cur.fetchone()[0]
+                """, (vehicle, generated_date, expires_date))
+                token = cur.fetchone()[0]
                 conn.commit()
-
             except psycopg2.errors.UniqueViolation:
-                # 🔹 Reuse existing QR
                 conn.rollback()
                 cur.execute("""
-                    SELECT id, daily_token, expires_date
+                    SELECT id, expires_date
                     FROM vehicle_qr
                     WHERE vehicle_number = %s AND generated_date = %s
                 """, (vehicle, generated_date))
-                token_id, daily_token, expires_date = cur.fetchone()
+                token, expires_date = cur.fetchone()
 
             conn.close()
 
-            qr_url = f"{request.host_url}verify/{token_id}"
-            qr_path = f"static/qr/{token_id}.png"
-
+            qr_url = f"{request.host_url}verify/{token}"
+            qr_path = f"static/qr/{token}.png"
             os.makedirs("static/qr", exist_ok=True)
+
             if not os.path.exists(qr_path):
                 qrcode.make(qr_url).save(qr_path)
 
             qr = {
-                "token": daily_token,   # 👈 DISPLAY TOKEN
+                "token": token,
                 "vehicle": vehicle,
                 "expiry": expires_date.strftime("%d-%m-%Y"),
                 "qr_path": qr_path,
@@ -120,16 +108,15 @@ def admin():
 # ======================
 # VERIFY
 # ======================
-@app.route("/verify/<int:token_id>")
-def verify(token_id):
+@app.route("/verify/<int:token>")
+def verify(token):
     conn = get_db()
     cur = conn.cursor()
-
     cur.execute("""
         SELECT vehicle_number, expires_date
         FROM vehicle_qr
         WHERE id = %s
-    """, (token_id,))
+    """, (token,))
     row = cur.fetchone()
     conn.close()
 
@@ -137,8 +124,7 @@ def verify(token_id):
         return render_template("verify.html", status="INVALID")
 
     vehicle, expiry = row
-    today = date.today()
-    status = "VALID" if today <= expiry else "EXPIRED"
+    status = "VALID" if date.today() <= expiry else "EXPIRED"
 
     return render_template(
         "verify.html",
@@ -148,12 +134,12 @@ def verify(token_id):
     )
 
 # ======================
-# CSV EXPORT
+# CSV HELPER
 # ======================
 def export_csv(rows, filename):
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(["Daily Token", "Vehicle", "Generated Date", "Expiry Date"])
+    writer.writerow(["Token", "Vehicle Number", "Generated Date", "Expiry Date"])
 
     for r in rows:
         writer.writerow(r)
@@ -166,66 +152,80 @@ def export_csv(rows, filename):
         download_name=filename
     )
 
-@app.route("/admin/export/daily")
-def export_daily():
+# ======================
+# EXPORT — DAILY (SELECTED DATE)
+# ======================
+@app.route("/admin/export/day")
+def export_day():
     if not session.get("logged_in"):
         return redirect(url_for("login"))
 
-    today = date.today()
+    selected = request.args.get("date")
+    d = datetime.strptime(selected, "%Y-%m-%d").date()
+
     conn = get_db()
     cur = conn.cursor()
-
     cur.execute("""
-        SELECT daily_token, vehicle_number, generated_date, expires_date
+        SELECT id, vehicle_number, generated_date, expires_date
         FROM vehicle_qr
         WHERE generated_date = %s
-        ORDER BY daily_token
-    """, (today,))
+        ORDER BY id
+    """, (d,))
     rows = cur.fetchall()
     conn.close()
 
-    return export_csv(rows, f"daily_{today}.csv")
+    return export_csv(rows, f"daily_{d}.csv")
 
-@app.route("/admin/export/weekly")
-def export_weekly():
+# ======================
+# EXPORT — WEEKLY (LAST 7 DAYS FROM SELECTED DATE)
+# ======================
+@app.route("/admin/export/week")
+def export_week():
     if not session.get("logged_in"):
         return redirect(url_for("login"))
 
-    today = date.today()
-    start = today - timedelta(days=6)
+    selected = request.args.get("date")
+    end = datetime.strptime(selected, "%Y-%m-%d").date()
+    start = end - timedelta(days=6)
 
     conn = get_db()
     cur = conn.cursor()
     cur.execute("""
-        SELECT daily_token, vehicle_number, generated_date, expires_date
+        SELECT id, vehicle_number, generated_date, expires_date
         FROM vehicle_qr
         WHERE generated_date BETWEEN %s AND %s
-        ORDER BY generated_date, daily_token
-    """, (start, today))
+        ORDER BY id
+    """, (start, end))
     rows = cur.fetchall()
     conn.close()
 
-    return export_csv(rows, "weekly.csv")
+    return export_csv(rows, f"weekly_{start}_to_{end}.csv")
 
-@app.route("/admin/export/monthly")
-def export_monthly():
+# ======================
+# EXPORT — MONTHLY (SELECTED MONTH)
+# ======================
+@app.route("/admin/export/month")
+def export_month():
     if not session.get("logged_in"):
         return redirect(url_for("login"))
 
-    start = date.today().replace(day=1)
+    month = request.args.get("month")  # YYYY-MM
+    year, mon = map(int, month.split("-"))
+    start = date(year, mon, 1)
+    end = (start + timedelta(days=32)).replace(day=1)
+
     conn = get_db()
     cur = conn.cursor()
-
     cur.execute("""
-        SELECT daily_token, vehicle_number, generated_date, expires_date
+        SELECT id, vehicle_number, generated_date, expires_date
         FROM vehicle_qr
-        WHERE generated_date >= %s
-        ORDER BY generated_date, daily_token
-    """, (start,))
+        WHERE generated_date >= %s AND generated_date < %s
+        ORDER BY id
+    """, (start, end))
     rows = cur.fetchall()
     conn.close()
 
-    return export_csv(rows, "monthly.csv")
+    return export_csv(rows, f"monthly_{month}.csv")
 
 # ======================
 # RUN
