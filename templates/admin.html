@@ -1,62 +1,59 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>BEAC Admin</title>
+    <meta charset="UTF-8">
+    <title>BEAC Vehicle QR System</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
 </head>
+
 <body>
 
-<h2>BEAC Vehicle QR System</h2>
+<h1>BEAC Vehicle QR system</h1>
 
-<form method="POST">
+<form method="POST" class="qr-form">
     <input type="text" name="vehicle" placeholder="Vehicle Number" required>
     <input type="date" name="date" required>
     <button type="submit">Generate QR</button>
 </form>
 
 {% if error %}
-<p style="color:red;">{{ error }}</p>
+<p class="error">{{ error }}</p>
 {% endif %}
 
 {% if qr %}
-<hr>
-<h3>QR Generated</h3>
-<p><b>Token:</b> {{ qr.token }}</p>
-<p><b>Vehicle:</b> {{ qr.vehicle }}</p>
-<p><b>Expiry:</b> {{ qr.expiry }}</p>
-
-<img src="/{{ qr.qr_path }}" width="200">
-<br>
-<a href="{{ qr.qr_url }}">{{ qr.qr_url }}</a>
+<div class="qr-box">
+    <p><b>Token:</b> {{ qr.token }}</p>
+    <p><b>Vehicle:</b> {{ qr.vehicle }}</p>
+    <p><b>Expiry:</b> {{ qr.expiry }}</p>
+    <img src="/{{ qr.qr_path }}" width="200">
+</div>
 {% endif %}
 
 <hr>
 
-<h3>📤 Export CSV</h3>
+<h2>Export CSV</h2>
 
-<form action="/admin/export/day" method="get">
-    <label>Select Day:</label><br>
-    <input type="date" name="date" required>
-    <button type="submit">Export Day</button>
-</form>
+<div class="export-box">
+    <form action="/admin/export/day" method="get">
+        <label>Select day</label>
+        <input type="date" name="date" required>
+        <button type="submit">Export Date</button>
+    </form>
 
-<br>
+    <form action="/admin/export/week" method="get">
+        <label>Select Any Date (last 7 days from it)</label>
+        <input type="date" name="date" required>
+        <button type="submit">Export Date</button>
+    </form>
 
-<form action="/admin/export/week" method="get">
-    <label>Select Any Date (last 7 days from it):</label><br>
-    <input type="date" name="date" required>
-    <button type="submit">Export Last 7 Days</button>
-</form>
+    <form action="/admin/export/month" method="get">
+        <label>Select month</label>
+        <input type="month" name="month" required>
+        <button type="submit">Export Date</button>
+    </form>
+</div>
 
-<br>
-
-<form action="/admin/export/month" method="get">
-    <label>Select Month:</label><br>
-    <input type="month" name="month" required>
-    <button type="submit">Export Month</button>
-</form>
-
-<hr>
-<a href="/logout">Logout</a>
+<a href="/logout" class="logout">Logout</a>
 
 </body>
 </html>
