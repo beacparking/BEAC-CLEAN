@@ -65,7 +65,7 @@ def admin():
             error = "Vehicle number and date required"
         else:
             generated_date = datetime.strptime(selected_date, "%Y-%m-%d").date()
-            expires_date = generated_date + timedelta(days=1)  # today + tomorrow
+            expires_date = generated_date + timedelta(days=2)  # today + tomorrow
 
             conn = get_db()
             cur = conn.cursor()
