@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Vehicle Statistics</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+</head>
+<body>
+
+<h1>Vehicle Statistics</h1>
+
+<form method="GET" class="qr-form">
+    <label>Select date</label>
+    <input type="date" name="date" value="{{ stats_date.isoformat() }}" required>
+    <button type="submit">Show Stats</button>
+</form>
+
+{% if stats %}
+<div class="qr-box">
+    <p><b>Statistics for {{ stats_date }}:</b></p>
+    <p>Bhutan trucks: {{ stats.bhutanese }}</p>
+    <p>India trucks: {{ stats.indian }}</p>
+    <p>Total trucks: {{ stats.total }}</p>
+</div>
+{% endif %}
+
+<a href="/logout" class="logout">Logout</a>
+
+</body>
+</html>
+

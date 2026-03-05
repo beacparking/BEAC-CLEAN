@@ -11,9 +11,10 @@ app = Flask(__name__)
 app.secret_key = "beac_secret_key"
 
 # ======================
-# DATABASE
+# DATABASE / CONFIG
 # ======================
 DATABASE_URL = os.environ.get("DATABASE_URL")
+BASE_URL = os.environ.get("BASE_URL")  # e.g. "http://192.168.1.7:5000"
 
 def get_db():
     return psycopg2.connect(DATABASE_URL)
@@ -23,6 +24,8 @@ def get_db():
 # ======================
 ADMIN_USERNAME = "admin"
 ADMIN_PASSWORD = "admin123"
+STATS_USERNAME = "beac"
+STATS_PASSWORD = "beac"
 
 @app.route("/")
 def home():
@@ -31,12 +34,17 @@ def home():
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
-        if (
-            request.form.get("username") == ADMIN_USERNAME
-            and request.form.get("password") == ADMIN_PASSWORD
-        ):
+        username = request.form.get("username")
+        password = request.form.get("password")
+
+        if username == ADMIN_USERNAME and password == ADMIN_PASSWORD:
             session["logged_in"] = True
             return redirect(url_for("admin"))
+
+        if username == STATS_USERNAME and password == STATS_PASSWORD:
+            session["stats_logged_in"] = True
+            return redirect(url_for("stats"))
+
         return render_template("login.html", error="Invalid credentials")
 
     return render_template("login.html")
@@ -60,9 +68,12 @@ def admin():
     if request.method == "POST":
         vehicle = request.form.get("vehicle")
         selected_date = request.form.get("date")
+        truck_type = request.form.get("truck_type")
+        load_type = request.form.get("load_type")
+        amount_collected = request.form.get("amount_collected")
 
-        if not vehicle or not selected_date:
-            error = "Vehicle number and date required"
+        if not vehicle or not selected_date or not truck_type or not load_type or not amount_collected:
+            error = "Vehicle number, date, truck type, load type and amount are required"
         else:
             generated_date = datetime.strptime(selected_date, "%Y-%m-%d").date()
             expires_date = generated_date + timedelta(days=2)  # today + tomorrow
@@ -71,21 +82,21 @@ def admin():
             cur = conn.cursor()
 
             try:
-                # 🔢 DAILY TOKEN CALCULATION
+                # 🔢 DAILY TOKEN CALCULATION (separate per truck type)
                 cur.execute("""
                     SELECT COALESCE(MAX(daily_token), 0) + 1
                     FROM vehicle_qr
-                    WHERE generated_date = %s
-                """, (generated_date,))
+                    WHERE generated_date = %s AND truck_type = %s
+                """, (generated_date, truck_type))
                 daily_token = cur.fetchone()[0]
 
                 # INSERT NEW QR
                 cur.execute("""
                     INSERT INTO vehicle_qr
-                    (vehicle_number, generated_date, expires_date, daily_token)
-                    VALUES (%s, %s, %s, %s)
+                    (vehicle_number, truck_type, load_type, amount_collected, generated_date, expires_date, daily_token)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s)
                     RETURNING id
-                """, (vehicle, generated_date, expires_date, daily_token))
+                """, (vehicle, truck_type, load_type, amount_collected, generated_date, expires_date, daily_token))
 
                 token_id = cur.fetchone()[0]
                 conn.commit()
@@ -102,7 +113,10 @@ def admin():
 
             conn.close()
 
-            qr_url = f"{request.host_url}verify/{token_id}"
+            base_url = BASE_URL or request.host_url
+            if not base_url.endswith("/"):
+                base_url += "/"
+            qr_url = f"{base_url}verify/{token_id}"
             qr_path = f"static/qr/{token_id}.png"
 
             os.makedirs("static/qr", exist_ok=True)
@@ -112,12 +126,58 @@ def admin():
             qr = {
                 "token": daily_token,
                 "vehicle": vehicle,
+                "truck_type": truck_type,
+                "load_type": load_type,
+                "amount_collected": amount_collected,
                 "expiry": expires_date.strftime("%d-%m-%Y"),
                 "qr_path": qr_path,
                 "qr_url": qr_url
             }
 
     return render_template("admin.html", qr=qr, error=error)
+
+
+# ======================
+# STATS DASHBOARD
+# ======================
+@app.route("/stats", methods=["GET"])
+def stats():
+    if not session.get("stats_logged_in"):
+        return redirect(url_for("login"))
+
+    date_str = request.args.get("date")
+    if date_str:
+        stats_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+    else:
+        stats_date = date.today()
+
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        SELECT truck_type, COUNT(*)
+        FROM vehicle_qr
+        WHERE generated_date = %s
+        GROUP BY truck_type
+        """,
+        (stats_date,),
+    )
+    rows = cur.fetchall()
+    conn.close()
+
+    total = 0
+    bhutanese = 0
+    indian = 0
+    for t_type, cnt in rows:
+        total += cnt
+        if t_type == "Bhutanese":
+            bhutanese = cnt
+        elif t_type == "Indian":
+            indian = cnt
+
+    stats_data = {"bhutanese": bhutanese, "indian": indian, "total": total}
+
+    return render_template("stats.html", stats=stats_data, stats_date=stats_date)
 
 # ======================
 # VERIFY QR
@@ -128,7 +188,7 @@ def verify(token_id):
     cur = conn.cursor()
 
     cur.execute("""
-        SELECT vehicle_number, expires_date
+        SELECT vehicle_number, truck_type, load_type, amount_collected, expires_date
         FROM vehicle_qr
         WHERE id = %s
     """, (token_id,))
@@ -138,7 +198,7 @@ def verify(token_id):
     if not row:
         return render_template("verify.html", status="INVALID")
 
-    vehicle, expiry = row
+    vehicle, truck_type, load_type, amount_collected, expiry = row
     today = date.today()
 
     status = "VALID" if today <= expiry else "EXPIRED"
@@ -147,6 +207,9 @@ def verify(token_id):
         "verify.html",
         status=status,
         vehicle=vehicle,
+        truck_type=truck_type,
+        load_type=load_type,
+        amount_collected=amount_collected,
         expiry=expiry.strftime("%d-%m-%Y")
     )
 
@@ -156,12 +219,11 @@ def verify(token_id):
 def export_csv(rows, filename):
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(["Daily Token", "Vehicle", "Generated Date", "Expiry Date"])
+    writer.writerow(["Daily Token", "Vehicle", "Truck Type", "Load Type", "Amount Collected", "Generated Date", "Expiry Date"])
 
     for r in rows:
         writer.writerow(r)
 
-    output.seek(0)
     return send_file(
         io.BytesIO(output.getvalue().encode()),
         mimetype="text/csv",
@@ -178,15 +240,22 @@ def export_day():
         return redirect(url_for("login"))
 
     d = datetime.strptime(request.args.get("date"), "%Y-%m-%d").date()
+    truck_type = request.args.get("truck_type")
 
     conn = get_db()
     cur = conn.cursor()
-    cur.execute("""
-        SELECT daily_token, vehicle_number, generated_date, expires_date
+    query = """
+        SELECT daily_token, vehicle_number, truck_type, load_type, amount_collected, generated_date, expires_date
         FROM vehicle_qr
         WHERE generated_date = %s
-        ORDER BY daily_token
-    """, (d,))
+    """
+    params = [d]
+    if truck_type:
+        query += " AND truck_type = %s"
+        params.append(truck_type)
+    query += " ORDER BY daily_token"
+
+    cur.execute(query, tuple(params))
     rows = cur.fetchall()
     conn.close()
 
@@ -200,17 +269,24 @@ def export_week():
     if not session.get("logged_in"):
         return redirect(url_for("login"))
 
-    end = date.today()
+    end = datetime.strptime(request.args.get("date"), "%Y-%m-%d").date()
     start = end - timedelta(days=6)
+    truck_type = request.args.get("truck_type")
 
     conn = get_db()
     cur = conn.cursor()
-    cur.execute("""
-        SELECT daily_token, vehicle_number, generated_date, expires_date
+    query = """
+        SELECT daily_token, vehicle_number, truck_type, load_type, amount_collected, generated_date, expires_date
         FROM vehicle_qr
         WHERE generated_date BETWEEN %s AND %s
-        ORDER BY generated_date, daily_token
-    """, (start, end))
+    """
+    params = [start, end]
+    if truck_type:
+        query += " AND truck_type = %s"
+        params.append(truck_type)
+    query += " ORDER BY generated_date, daily_token"
+
+    cur.execute(query, tuple(params))
     rows = cur.fetchall()
     conn.close()
 
@@ -224,16 +300,31 @@ def export_month():
     if not session.get("logged_in"):
         return redirect(url_for("login"))
 
-    start = date.today().replace(day=1)
+    month_str = request.args.get("month")  # format YYYY-MM
+    truck_type = request.args.get("truck_type")
+
+    # First day of selected month
+    start = datetime.strptime(month_str, "%Y-%m").date().replace(day=1)
+    # First day of next month
+    if start.month == 12:
+        next_month_start = start.replace(year=start.year + 1, month=1, day=1)
+    else:
+        next_month_start = start.replace(month=start.month + 1, day=1)
 
     conn = get_db()
     cur = conn.cursor()
-    cur.execute("""
-        SELECT daily_token, vehicle_number, generated_date, expires_date
+    query = """
+        SELECT daily_token, vehicle_number, truck_type, load_type, amount_collected, generated_date, expires_date
         FROM vehicle_qr
-        WHERE generated_date >= %s
-        ORDER BY generated_date, daily_token
-    """, (start,))
+        WHERE generated_date >= %s AND generated_date < %s
+    """
+    params = [start, next_month_start]
+    if truck_type:
+        query += " AND truck_type = %s"
+        params.append(truck_type)
+    query += " ORDER BY generated_date, daily_token"
+
+    cur.execute(query, tuple(params))
     rows = cur.fetchall()
     conn.close()
 
@@ -243,4 +334,4 @@ def export_month():
 # RUN
 # ======================
 if __name__ == "__main__":
-    app.run(debug=True)
+    app.run(host="0.0.0.0", port=5001, debug=True)

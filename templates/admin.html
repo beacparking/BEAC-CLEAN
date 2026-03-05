@@ -13,6 +13,20 @@
 <form method="POST" class="qr-form">
     <input type="text" name="vehicle" placeholder="Vehicle Number" required>
     <input type="date" name="date" required>
+    <select name="truck_type" required>
+        <option value="">Select Truck Type</option>
+        <option value="Bhutanese">Bhutan Truck</option>
+        <option value="Indian">India Truck</option>
+    </select>
+    <select name="load_type" required>
+        <option value="">Select Load Type</option>
+        <option value="geti">Geti</option>
+        <option value="limestone">Lime Stone</option>
+        <option value="dust">Dust</option>
+        <option value="boulder">Boulder</option>
+        <option value="other">Other</option>
+    </select>
+    <input type="number" step="0.01" min="0" name="amount_collected" placeholder="Amount Collected" required>
     <button type="submit">Generate QR</button>
 </form>
 
@@ -24,6 +38,9 @@
 <div class="qr-box">
     <p><b>Token:</b> {{ qr.token }}</p>
     <p><b>Vehicle:</b> {{ qr.vehicle }}</p>
+    <p><b>Truck Type:</b> {{ qr.truck_type }}</p>
+    <p><b>Load Type:</b> {{ qr.load_type }}</p>
+    <p><b>Amount Collected:</b> {{ qr.amount_collected }}</p>
     <p><b>Expiry:</b> {{ qr.expiry }}</p>
     <img src="/{{ qr.qr_path }}" width="200">
 </div>
@@ -37,18 +54,33 @@
     <form action="/admin/export/day" method="get">
         <label>Select day</label>
         <input type="date" name="date" required>
+        <select name="truck_type">
+            <option value="">All Trucks</option>
+            <option value="Bhutanese">Bhutan Trucks</option>
+            <option value="Indian">India Trucks</option>
+        </select>
         <button type="submit">Export Date</button>
     </form>
 
     <form action="/admin/export/week" method="get">
         <label>Select Any Date (last 7 days from it)</label>
         <input type="date" name="date" required>
+        <select name="truck_type">
+            <option value="">All Trucks</option>
+            <option value="Bhutanese">Bhutan Trucks</option>
+            <option value="Indian">India Trucks</option>
+        </select>
         <button type="submit">Export Date</button>
     </form>
 
     <form action="/admin/export/month" method="get">
         <label>Select month</label>
         <input type="month" name="month" required>
+        <select name="truck_type">
+            <option value="">All Trucks</option>
+            <option value="Bhutanese">Bhutan Trucks</option>
+            <option value="Indian">India Trucks</option>
+        </select>
         <button type="submit">Export Date</button>
     </form>
 </div>
