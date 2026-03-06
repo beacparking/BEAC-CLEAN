@@ -120,8 +120,8 @@ def admin():
             qr_path = f"static/qr/{token_id}.png"
 
             os.makedirs("static/qr", exist_ok=True)
-            if not os.path.exists(qr_path):
-                qrcode.make(qr_url).save(qr_path)
+            # Always overwrite so QR contains current base URL (important after deploy)
+            qrcode.make(qr_url).save(qr_path)
 
             qr = {
                 "token": daily_token,
