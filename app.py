@@ -240,10 +240,13 @@ def verify(token_id):
 def export_csv(rows, filename):
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(["Daily Token", "Vehicle", "Truck Type", "Load Type", "Amount Collected", "Generated Date", "Expiry Date"])
+    writer.writerow(["Daily Token", "Vehicle", "Truck Type", "Load Type", "Amount Collected"])
 
     for r in rows:
-        writer.writerow(r)
+        # rows currently contain (daily_token, vehicle_number, truck_type, load_type,
+        # amount_collected, generated_date, expires_date)
+        # Only write the first five columns to the CSV.
+        writer.writerow(r[:5])
 
     return send_file(
         io.BytesIO(output.getvalue().encode()),
