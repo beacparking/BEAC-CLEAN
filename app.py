@@ -31,6 +31,27 @@ STATS_PASSWORD = "beac"
 def home():
     return redirect(url_for("login"))
 
+
+@app.route("/robots.txt")
+def robots():
+    base = request.url_root.rstrip("/")
+    return f"""User-agent: *
+Allow: /
+Sitemap: {base}/sitemap.xml
+""", 200, {"Content-Type": "text/plain; charset=utf-8"}
+
+
+@app.route("/sitemap.xml")
+def sitemap():
+    base = request.url_root.rstrip("/")
+    xml = f"""<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url><loc>{base}/</loc><changefreq>weekly</changefreq><priority>1.0</priority></url>
+  <url><loc>{base}/login</loc><changefreq>weekly</changefreq><priority>0.9</priority></url>
+</urlset>"""
+    return xml, 200, {"Content-Type": "application/xml; charset=utf-8"}
+
+
 @app.route("/login", methods=["GET", "POST"])
 def login():
     if request.method == "POST":
