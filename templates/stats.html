@@ -24,19 +24,19 @@
 
     <p style="margin-top: 20px;"><b>Bhutanese vehicles – amount collected</b></p>
     <p>Total amount: {{ "%.2f"|format(stats.amounts_bhutanese.total) }}</p>
-    <p>Geti: {{ "%.2f"|format(stats.amounts_bhutanese.geti) }}</p>
-    <p>Lime Stone: {{ "%.2f"|format(stats.amounts_bhutanese.limestone) }}</p>
-    <p>Boulder: {{ "%.2f"|format(stats.amounts_bhutanese.boulder) }}</p>
-    <p>Dust: {{ "%.2f"|format(stats.amounts_bhutanese.dust) }}</p>
-    <p>Other: {{ "%.2f"|format(stats.amounts_bhutanese.other) }}</p>
+    <p>Geti: {{ "%.2f"|format(stats.amounts_bhutanese.geti) }} ({{ stats.counts_bhutanese.geti }} vehicle{% if stats.counts_bhutanese.geti != 1 %}s{% endif %})</p>
+    <p>Lime Stone: {{ "%.2f"|format(stats.amounts_bhutanese.limestone) }} ({{ stats.counts_bhutanese.limestone }} vehicle{% if stats.counts_bhutanese.limestone != 1 %}s{% endif %})</p>
+    <p>Boulder: {{ "%.2f"|format(stats.amounts_bhutanese.boulder) }} ({{ stats.counts_bhutanese.boulder }} vehicle{% if stats.counts_bhutanese.boulder != 1 %}s{% endif %})</p>
+    <p>Dust: {{ "%.2f"|format(stats.amounts_bhutanese.dust) }} ({{ stats.counts_bhutanese.dust }} vehicle{% if stats.counts_bhutanese.dust != 1 %}s{% endif %})</p>
+    <p>Other: {{ "%.2f"|format(stats.amounts_bhutanese.other) }} ({{ stats.counts_bhutanese.other }} vehicle{% if stats.counts_bhutanese.other != 1 %}s{% endif %})</p>
 
     <p style="margin-top: 20px;"><b>Indian vehicles – amount collected</b></p>
     <p>Total amount: {{ "%.2f"|format(stats.amounts_indian.total) }}</p>
-    <p>Geti: {{ "%.2f"|format(stats.amounts_indian.geti) }}</p>
-    <p>Lime Stone: {{ "%.2f"|format(stats.amounts_indian.limestone) }}</p>
-    <p>Boulder: {{ "%.2f"|format(stats.amounts_indian.boulder) }}</p>
-    <p>Dust: {{ "%.2f"|format(stats.amounts_indian.dust) }}</p>
-    <p>Other: {{ "%.2f"|format(stats.amounts_indian.other) }}</p>
+    <p>Geti: {{ "%.2f"|format(stats.amounts_indian.geti) }} ({{ stats.counts_indian.geti }} vehicle{% if stats.counts_indian.geti != 1 %}s{% endif %})</p>
+    <p>Lime Stone: {{ "%.2f"|format(stats.amounts_indian.limestone) }} ({{ stats.counts_indian.limestone }} vehicle{% if stats.counts_indian.limestone != 1 %}s{% endif %})</p>
+    <p>Boulder: {{ "%.2f"|format(stats.amounts_indian.boulder) }} ({{ stats.counts_indian.boulder }} vehicle{% if stats.counts_indian.boulder != 1 %}s{% endif %})</p>
+    <p>Dust: {{ "%.2f"|format(stats.amounts_indian.dust) }} ({{ stats.counts_indian.dust }} vehicle{% if stats.counts_indian.dust != 1 %}s{% endif %})</p>
+    <p>Other: {{ "%.2f"|format(stats.amounts_indian.other) }} ({{ stats.counts_indian.other }} vehicle{% if stats.counts_indian.other != 1 %}s{% endif %})</p>
 
     <p style="margin-top: 20px;"><b>Download CSV</b></p>
     <p>

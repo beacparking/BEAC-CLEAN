@@ -196,10 +196,12 @@ def stats():
         elif t_type == "Indian":
             indian = cnt
 
-    # Amounts by truck type and load type (SUM of amount_collected)
+    # Amounts and vehicle counts by truck type and load type
     cur.execute(
         """
-        SELECT truck_type, load_type, COALESCE(SUM(amount_collected), 0)
+        SELECT truck_type, load_type,
+               COALESCE(SUM(amount_collected), 0),
+               COUNT(*)
         FROM vehicle_qr
         WHERE generated_date = %s
         GROUP BY truck_type, load_type
@@ -209,20 +211,25 @@ def stats():
     amount_rows = cur.fetchall()
     conn.close()
 
-    load_keys = ("geti", "limestone", "boulder", "dust", "other")
     amounts_bhutanese = {"total": 0, "geti": 0, "limestone": 0, "boulder": 0, "dust": 0, "other": 0}
     amounts_indian = {"total": 0, "geti": 0, "limestone": 0, "boulder": 0, "dust": 0, "other": 0}
+    counts_bhutanese = {"geti": 0, "limestone": 0, "boulder": 0, "dust": 0, "other": 0}
+    counts_indian = {"geti": 0, "limestone": 0, "boulder": 0, "dust": 0, "other": 0}
 
-    for t_type, load_type, amt in amount_rows:
+    for t_type, load_type, amt, cnt in amount_rows:
         amt = float(amt) if amt is not None else 0
         if t_type == "Bhutanese":
             amounts_bhutanese["total"] += amt
             if load_type in amounts_bhutanese:
                 amounts_bhutanese[load_type] = amt
+            if load_type in counts_bhutanese:
+                counts_bhutanese[load_type] = cnt
         elif t_type == "Indian":
             amounts_indian["total"] += amt
             if load_type in amounts_indian:
                 amounts_indian[load_type] = amt
+            if load_type in counts_indian:
+                counts_indian[load_type] = cnt
 
     stats_data = {
         "bhutanese": bhutanese,
@@ -230,6 +237,8 @@ def stats():
         "total": total,
         "amounts_bhutanese": amounts_bhutanese,
         "amounts_indian": amounts_indian,
+        "counts_bhutanese": counts_bhutanese,
+        "counts_indian": counts_indian,
     }
 
     return render_template("stats.html", stats=stats_data, stats_date=stats_date)
