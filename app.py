@@ -263,7 +263,13 @@ def stats_export():
     rows = cur.fetchall()
     conn.close()
 
-    return export_csv(rows, f"stats_{d}.csv")
+    if truck_type == "Bhutanese":
+        filename = f"stats_{d}_bhutanese.csv"
+    elif truck_type == "Indian":
+        filename = f"stats_{d}_indian.csv"
+    else:
+        filename = f"stats_{d}.csv"
+    return export_csv(rows, filename)
 
 
 # ======================
