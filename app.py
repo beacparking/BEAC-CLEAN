@@ -174,6 +174,8 @@ def stats():
 
     conn = get_db()
     cur = conn.cursor()
+
+    # Vehicle counts by truck type
     cur.execute(
         """
         SELECT truck_type, COUNT(*)
@@ -184,8 +186,6 @@ def stats():
         (stats_date,),
     )
     rows = cur.fetchall()
-    conn.close()
-
     total = 0
     bhutanese = 0
     indian = 0
@@ -196,7 +196,41 @@ def stats():
         elif t_type == "Indian":
             indian = cnt
 
-    stats_data = {"bhutanese": bhutanese, "indian": indian, "total": total}
+    # Amounts by truck type and load type (SUM of amount_collected)
+    cur.execute(
+        """
+        SELECT truck_type, load_type, COALESCE(SUM(amount_collected), 0)
+        FROM vehicle_qr
+        WHERE generated_date = %s
+        GROUP BY truck_type, load_type
+        """,
+        (stats_date,),
+    )
+    amount_rows = cur.fetchall()
+    conn.close()
+
+    load_keys = ("geti", "limestone", "boulder", "dust", "other")
+    amounts_bhutanese = {"total": 0, "geti": 0, "limestone": 0, "boulder": 0, "dust": 0, "other": 0}
+    amounts_indian = {"total": 0, "geti": 0, "limestone": 0, "boulder": 0, "dust": 0, "other": 0}
+
+    for t_type, load_type, amt in amount_rows:
+        amt = float(amt) if amt is not None else 0
+        if t_type == "Bhutanese":
+            amounts_bhutanese["total"] += amt
+            if load_type in amounts_bhutanese:
+                amounts_bhutanese[load_type] = amt
+        elif t_type == "Indian":
+            amounts_indian["total"] += amt
+            if load_type in amounts_indian:
+                amounts_indian[load_type] = amt
+
+    stats_data = {
+        "bhutanese": bhutanese,
+        "indian": indian,
+        "total": total,
+        "amounts_bhutanese": amounts_bhutanese,
+        "amounts_indian": amounts_indian,
+    }
 
     return render_template("stats.html", stats=stats_data, stats_date=stats_date)
 
