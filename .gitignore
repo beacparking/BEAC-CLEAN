@@ -5,3 +5,4 @@ __pycache__/
 *.rtf
 *.command
 .DS_Store
+static/qr/

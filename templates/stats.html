@@ -21,6 +21,9 @@
     <p>Bhutan trucks: {{ stats.bhutanese }}</p>
     <p>India trucks: {{ stats.indian }}</p>
     <p>Total trucks: {{ stats.total }}</p>
+    <p style="margin-top: 15px;">
+        <a href="{{ url_for('stats_export', date=stats_date.isoformat()) }}" class="logout" style="display: inline-block;">Download CSV for this date</a>
+    </p>
 </div>
 {% endif %}
 

@@ -200,6 +200,38 @@ def stats():
 
     return render_template("stats.html", stats=stats_data, stats_date=stats_date)
 
+
+@app.route("/stats/export")
+def stats_export():
+    if not session.get("stats_logged_in"):
+        return redirect(url_for("login"))
+
+    date_str = request.args.get("date")
+    if not date_str:
+        return redirect(url_for("stats"))
+    d = datetime.strptime(date_str, "%Y-%m-%d").date()
+    truck_type = request.args.get("truck_type")
+
+    conn = get_db()
+    cur = conn.cursor()
+    query = """
+        SELECT daily_token, vehicle_number, truck_type, load_type, amount_collected, generated_date, expires_date
+        FROM vehicle_qr
+        WHERE generated_date = %s
+    """
+    params = [d]
+    if truck_type:
+        query += " AND truck_type = %s"
+        params.append(truck_type)
+    query += " ORDER BY daily_token"
+
+    cur.execute(query, tuple(params))
+    rows = cur.fetchall()
+    conn.close()
+
+    return export_csv(rows, f"stats_{d}.csv")
+
+
 # ======================
 # VERIFY QR
 # ======================
@@ -243,9 +275,6 @@ def export_csv(rows, filename):
     writer.writerow(["Daily Token", "Vehicle", "Truck Type", "Load Type", "Amount Collected"])
 
     for r in rows:
-        # rows currently contain (daily_token, vehicle_number, truck_type, load_type,
-        # amount_collected, generated_date, expires_date)
-        # Only write the first five columns to the CSV.
         writer.writerow(r[:5])
 
     return send_file(
