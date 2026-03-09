@@ -37,6 +37,20 @@ h2 {
     margin-bottom: 16px;
 }
 
+.qr-form .field {
+    flex: 1 1 160px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.qr-form .field label {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #a5b4fc;
+}
+
 .qr-form input,
 .qr-form select {
     padding: 10px 12px;
