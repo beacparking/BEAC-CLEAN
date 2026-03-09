@@ -18,33 +18,119 @@
 
 {% if stats %}
 <div class="qr-box">
-    <p><b>Statistics for {{ stats_date }}:</b></p>
-    <p>Bhutan trucks: {{ stats.bhutanese }}</p>
-    <p>India trucks: {{ stats.indian }}</p>
-    <p>Total trucks: {{ stats.total }}</p>
-
-    <p style="margin-top: 20px;"><b>Bhutanese vehicles – amount collected</b></p>
-    <p>Total amount: {{ "%.2f"|format(stats.amounts_bhutanese.total) }}</p>
-    <p>Geti: {{ "%.2f"|format(stats.amounts_bhutanese.geti) }} ({{ stats.counts_bhutanese.geti }} vehicle{% if stats.counts_bhutanese.geti != 1 %}s{% endif %})</p>
-    <p>Lime Stone: {{ "%.2f"|format(stats.amounts_bhutanese.limestone) }} ({{ stats.counts_bhutanese.limestone }} vehicle{% if stats.counts_bhutanese.limestone != 1 %}s{% endif %})</p>
-    <p>Boulder: {{ "%.2f"|format(stats.amounts_bhutanese.boulder) }} ({{ stats.counts_bhutanese.boulder }} vehicle{% if stats.counts_bhutanese.boulder != 1 %}s{% endif %})</p>
-    <p>Dust: {{ "%.2f"|format(stats.amounts_bhutanese.dust) }} ({{ stats.counts_bhutanese.dust }} vehicle{% if stats.counts_bhutanese.dust != 1 %}s{% endif %})</p>
-    <p>Other: {{ "%.2f"|format(stats.amounts_bhutanese.other) }} ({{ stats.counts_bhutanese.other }} vehicle{% if stats.counts_bhutanese.other != 1 %}s{% endif %})</p>
-
-    <p style="margin-top: 20px;"><b>Indian vehicles – amount collected</b></p>
-    <p>Total amount: {{ "%.2f"|format(stats.amounts_indian.total) }}</p>
-    <p>Geti: {{ "%.2f"|format(stats.amounts_indian.geti) }} ({{ stats.counts_indian.geti }} vehicle{% if stats.counts_indian.geti != 1 %}s{% endif %})</p>
-    <p>Lime Stone: {{ "%.2f"|format(stats.amounts_indian.limestone) }} ({{ stats.counts_indian.limestone }} vehicle{% if stats.counts_indian.limestone != 1 %}s{% endif %})</p>
-    <p>Boulder: {{ "%.2f"|format(stats.amounts_indian.boulder) }} ({{ stats.counts_indian.boulder }} vehicle{% if stats.counts_indian.boulder != 1 %}s{% endif %})</p>
-    <p>Dust: {{ "%.2f"|format(stats.amounts_indian.dust) }} ({{ stats.counts_indian.dust }} vehicle{% if stats.counts_indian.dust != 1 %}s{% endif %})</p>
-    <p>Other: {{ "%.2f"|format(stats.amounts_indian.other) }} ({{ stats.counts_indian.other }} vehicle{% if stats.counts_indian.other != 1 %}s{% endif %})</p>
-
-    <p style="margin-top: 20px;"><b>Download CSV</b></p>
-    <p>
-        <a href="{{ url_for('stats_export', date=stats_date.isoformat(), truck_type='Bhutanese') }}" class="logout" style="display: inline-block; margin-right: 10px;">Download CSV – Bhutanese vehicles</a>
-        <a href="{{ url_for('stats_export', date=stats_date.isoformat(), truck_type='Indian') }}" class="logout" style="display: inline-block;">Download CSV – Indian vehicles</a>
-    </p>
+    <div class="stats-summary">
+        <div>
+            <div class="stats-summary-label">Bhutan trucks</div>
+            <div class="stats-summary-value">{{ stats.bhutanese }}</div>
+        </div>
+        <div>
+            <div class="stats-summary-label">India trucks</div>
+            <div class="stats-summary-value">{{ stats.indian }}</div>
+        </div>
+        <div>
+            <div class="stats-summary-label">Total trucks</div>
+            <div class="stats-summary-value">{{ stats.total }}</div>
+        </div>
     </div>
+
+    <div class="stats-tables">
+        <div>
+            <h2>Bhutanese vehicles</h2>
+            <table class="stats-table">
+                <thead>
+                    <tr>
+                        <th>Load type</th>
+                        <th>Amount collected</th>
+                        <th>Number of vehicles</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Geti</td>
+                        <td>{{ "%.2f"|format(stats.amounts_bhutanese.geti) }}</td>
+                        <td>{{ stats.counts_bhutanese.geti }}</td>
+                    </tr>
+                    <tr>
+                        <td>Lime Stone</td>
+                        <td>{{ "%.2f"|format(stats.amounts_bhutanese.limestone) }}</td>
+                        <td>{{ stats.counts_bhutanese.limestone }}</td>
+                    </tr>
+                    <tr>
+                        <td>Boulder</td>
+                        <td>{{ "%.2f"|format(stats.amounts_bhutanese.boulder) }}</td>
+                        <td>{{ stats.counts_bhutanese.boulder }}</td>
+                    </tr>
+                    <tr>
+                        <td>Dust</td>
+                        <td>{{ "%.2f"|format(stats.amounts_bhutanese.dust) }}</td>
+                        <td>{{ stats.counts_bhutanese.dust }}</td>
+                    </tr>
+                    <tr>
+                        <td>Other</td>
+                        <td>{{ "%.2f"|format(stats.amounts_bhutanese.other) }}</td>
+                        <td>{{ stats.counts_bhutanese.other }}</td>
+                    </tr>
+                    <tr class="stats-total-row">
+                        <td>Total</td>
+                        <td>{{ "%.2f"|format(stats.amounts_bhutanese.total) }}</td>
+                        <td>{{ stats.bhutanese }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div>
+            <h2>Indian vehicles</h2>
+            <table class="stats-table">
+                <thead>
+                    <tr>
+                        <th>Load type</th>
+                        <th>Amount collected</th>
+                        <th>Number of vehicles</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>Geti</td>
+                        <td>{{ "%.2f"|format(stats.amounts_indian.geti) }}</td>
+                        <td>{{ stats.counts_indian.geti }}</td>
+                    </tr>
+                    <tr>
+                        <td>Lime Stone</td>
+                        <td>{{ "%.2f"|format(stats.amounts_indian.limestone) }}</td>
+                        <td>{{ stats.counts_indian.limestone }}</td>
+                    </tr>
+                    <tr>
+                        <td>Boulder</td>
+                        <td>{{ "%.2f"|format(stats.amounts_indian.boulder) }}</td>
+                        <td>{{ stats.counts_indian.boulder }}</td>
+                    </tr>
+                    <tr>
+                        <td>Dust</td>
+                        <td>{{ "%.2f"|format(stats.amounts_indian.dust) }}</td>
+                        <td>{{ stats.counts_indian.dust }}</td>
+                    </tr>
+                    <tr>
+                        <td>Other</td>
+                        <td>{{ "%.2f"|format(stats.amounts_indian.other) }}</td>
+                        <td>{{ stats.counts_indian.other }}</td>
+                    </tr>
+                    <tr class="stats-total-row">
+                        <td>Total</td>
+                        <td>{{ "%.2f"|format(stats.amounts_indian.total) }}</td>
+                        <td>{{ stats.indian }}</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="stats-download">
+        <span>Download CSV:</span>
+        <a href="{{ url_for('stats_export', date=stats_date.isoformat(), truck_type='Bhutanese') }}" class="logout">Bhutanese vehicles</a>
+        <a href="{{ url_for('stats_export', date=stats_date.isoformat(), truck_type='Indian') }}" class="logout">Indian vehicles</a>
+    </div>
+</div>
 {% endif %}
 
 <a href="/logout" class="logout">Logout</a>
