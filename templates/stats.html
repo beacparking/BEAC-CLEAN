@@ -6,6 +6,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
 </head>
 <body>
+<div class="page">
 
 <h1>Vehicle Statistics</h1>
 
@@ -43,11 +44,11 @@
         <a href="{{ url_for('stats_export', date=stats_date.isoformat(), truck_type='Bhutanese') }}" class="logout" style="display: inline-block; margin-right: 10px;">Download CSV – Bhutanese vehicles</a>
         <a href="{{ url_for('stats_export', date=stats_date.isoformat(), truck_type='Indian') }}" class="logout" style="display: inline-block;">Download CSV – Indian vehicles</a>
     </p>
-</div>
+    </div>
 {% endif %}
 
 <a href="/logout" class="logout">Logout</a>
 
+</div>
 </body>
 </html>
-
