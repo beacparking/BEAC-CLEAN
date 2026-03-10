@@ -41,7 +41,11 @@
     </div>
     <div class="field">
         <label>Amount collected (Nu)</label>
-        <input type="number" step="0.01" min="0" name="amount_collected" placeholder="0.00" required>
+        <input id="amount_collected" type="number" step="0.01" min="0" name="amount_collected" placeholder="0.00" required>
+    </div>
+    <div class="field">
+        <label>SAT</label>
+        <input id="sat_status" type="text" value="Unpaid" readonly>
     </div>
     <button type="submit">Generate Token</button>
 </form>
@@ -57,6 +61,13 @@
     <p><b>Truck Type:</b> {{ qr.truck_type }}</p>
     <p><b>Load Type:</b> {{ qr.load_type }}</p>
     <p><b>Amount Collected:</b> {{ qr.amount_collected }}</p>
+    <p><b>SAT:</b>
+        {% if qr.amount_collected and qr.amount_collected|float > 0 %}
+            Paid
+        {% else %}
+            Unpaid
+        {% endif %}
+    </p>
 </div>
 {% endif %}
 
@@ -102,5 +113,25 @@
 <a href="/logout" class="logout">Logout</a>
 
 </div>
+
+<script>
+    (function () {
+        const amountInput = document.getElementById('amount_collected');
+        const satInput = document.getElementById('sat_status');
+        if (!amountInput || !satInput) return;
+
+        function updateSat() {
+            const value = parseFloat(amountInput.value);
+            if (!isNaN(value) && value > 0) {
+                satInput.value = 'Paid';
+            } else {
+                satInput.value = 'Unpaid';
+            }
+        }
+
+        amountInput.addEventListener('input', updateSat);
+        updateSat();
+    })();
+</script>
 </body>
 </html>

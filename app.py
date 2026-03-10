@@ -321,12 +321,10 @@ def verify(token_id):
 def export_csv(rows, filename):
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(["Daily Token", "Vehicle", "Truck Type", "Load Type", "Amount Collected", "Amount Status"])
+    writer.writerow(["Daily Token", "Vehicle", "Truck Type", "Load Type", "Amount Collected"])
 
     for r in rows:
-        amount = r[4]
-        status = "Paid" if amount and float(amount) > 0 else "Not Paid"
-        writer.writerow(list(r[:5]) + [status])
+        writer.writerow(r[:5])
 
     return send_file(
         io.BytesIO(output.getvalue().encode()),
