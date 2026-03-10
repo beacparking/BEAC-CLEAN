@@ -159,7 +159,13 @@
         {% if unpaid_bhutanese %}
             <ul class="unpaid-list">
                 {% for item in unpaid_bhutanese %}
-                    <li>Token {{ item.token }} — {{ item.vehicle }}</li>
+                    <li class="unpaid-item"
+                        data-id="{{ item.id }}"
+                        data-token="{{ item.token }}"
+                        data-vehicle="{{ item.vehicle }}"
+                        data-truck="{{ item.truck_type }}">
+                        Token {{ item.token }} — {{ item.vehicle }}
+                    </li>
                 {% endfor %}
             </ul>
         {% else %}
@@ -171,7 +177,13 @@
         {% if unpaid_indian %}
             <ul class="unpaid-list">
                 {% for item in unpaid_indian %}
-                    <li>Token {{ item.token }} — {{ item.vehicle }}</li>
+                    <li class="unpaid-item"
+                        data-id="{{ item.id }}"
+                        data-token="{{ item.token }}"
+                        data-vehicle="{{ item.vehicle }}"
+                        data-truck="{{ item.truck_type }}">
+                        Token {{ item.token }} — {{ item.vehicle }}
+                    </li>
                 {% endfor %}
             </ul>
         {% else %}
@@ -184,6 +196,27 @@
 {% endif %}
 </div>  <!-- /report-section -->
 
+</div>
+
+<div id="unpaid-modal" class="modal hidden">
+    <div class="modal-backdrop"></div>
+    <div class="modal-content">
+        <h2>Update amount</h2>
+        <form method="POST" action="{{ url_for('update_amount') }}" class="modal-form">
+            <input type="hidden" name="record_id" id="modal_record_id">
+            <p class="modal-line"><strong>Token:</strong> <span id="modal_token"></span></p>
+            <p class="modal-line"><strong>Vehicle:</strong> <span id="modal_vehicle"></span></p>
+            <p class="modal-line"><strong>Truck type:</strong> <span id="modal_truck"></span></p>
+
+            <label class="modal-label">Amount collected (Nu)</label>
+            <input id="modal_amount" type="number" step="0.01" min="0" name="amount_collected" placeholder="0.00" required>
+
+            <div class="modal-actions">
+                <button type="submit" class="primary">Update</button>
+                <button type="button" id="modal_cancel" class="secondary">Cancel</button>
+            </div>
+        </form>
+    </div>
 </div>
 
 <script>
@@ -213,21 +246,84 @@
             'report-section': document.getElementById('report-section')
         };
 
+        function setActiveTab(target) {
+            Object.keys(sections).forEach(key => {
+                if (key === target) {
+                    sections[key].classList.remove('hidden');
+                } else {
+                    sections[key].classList.add('hidden');
+                }
+            });
+
+            links.forEach(l => {
+                if (l.getAttribute('data-target') === target) {
+                    l.classList.add('active');
+                } else {
+                    l.classList.remove('active');
+                }
+            });
+        }
+
+        // Initial tab based on query param (?tab=report-section)
+        const params = new URLSearchParams(window.location.search);
+        const initialTab = params.get('tab') || 'token-section';
+        if (sections[initialTab]) {
+            setActiveTab(initialTab);
+        }
+
         links.forEach(link => {
             link.addEventListener('click', () => {
                 const target = link.getAttribute('data-target');
-
-                links.forEach(l => l.classList.remove('active'));
-                link.classList.add('active');
-
-                Object.keys(sections).forEach(key => {
-                    if (key === target) {
-                        sections[key].classList.remove('hidden');
-                    } else {
-                        sections[key].classList.add('hidden');
-                    }
-                });
+                if (sections[target]) {
+                    setActiveTab(target);
+                }
             });
+        });
+    })();
+
+    (function () {
+        const modal = document.getElementById('unpaid-modal');
+        const recordInput = document.getElementById('modal_record_id');
+        const tokenSpan = document.getElementById('modal_token');
+        const vehicleSpan = document.getElementById('modal_vehicle');
+        const truckSpan = document.getElementById('modal_truck');
+        const amountInput = document.getElementById('modal_amount');
+        const cancelBtn = document.getElementById('modal_cancel');
+
+        if (!modal) return;
+
+        function openModal(item) {
+            const id = item.getAttribute('data-id');
+            const token = item.getAttribute('data-token');
+            const vehicle = item.getAttribute('data-vehicle');
+            const truck = item.getAttribute('data-truck');
+
+            recordInput.value = id;
+            tokenSpan.textContent = token;
+            vehicleSpan.textContent = vehicle;
+            truckSpan.textContent = truck;
+            amountInput.value = '';
+
+            modal.classList.remove('hidden');
+            amountInput.focus();
+        }
+
+        function closeModal() {
+            modal.classList.add('hidden');
+        }
+
+        document.querySelectorAll('.unpaid-item').forEach(item => {
+            item.addEventListener('click', () => openModal(item));
+        });
+
+        if (cancelBtn) {
+            cancelBtn.addEventListener('click', closeModal);
+        }
+
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) {
+                closeModal();
+            }
         });
     })();
 </script>

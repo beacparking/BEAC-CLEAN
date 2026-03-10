@@ -116,7 +116,7 @@ def admin():
     # Unpaid tokens (amount 0 or null) for today
     cur.execute(
         """
-        SELECT truck_type, daily_token, vehicle_number
+        SELECT id, truck_type, daily_token, vehicle_number
         FROM vehicle_qr
         WHERE generated_date = %s
           AND (amount_collected IS NULL OR amount_collected::numeric <= 0)
@@ -129,8 +129,8 @@ def admin():
 
     unpaid_bhutanese = []
     unpaid_indian = []
-    for t_type, token, vehicle in unpaid_rows:
-        item = {"token": token, "vehicle": vehicle}
+    for rec_id, t_type, token, vehicle in unpaid_rows:
+        item = {"id": rec_id, "token": token, "vehicle": vehicle, "truck_type": t_type}
         if t_type == "Bhutanese":
             unpaid_bhutanese.append(item)
         elif t_type == "Indian":
@@ -217,6 +217,30 @@ def admin():
         unpaid_bhutanese=unpaid_bhutanese,
         unpaid_indian=unpaid_indian,
     )
+
+
+@app.route("/admin/update_amount", methods=["POST"])
+def update_amount():
+    if not session.get("logged_in"):
+        return redirect(url_for("login"))
+
+    record_id = request.form.get("record_id")
+    new_amount = request.form.get("amount_collected")
+
+    if not record_id or new_amount is None:
+        return redirect(url_for("admin", tab="report-section"))
+
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute(
+        "UPDATE vehicle_qr SET amount_collected = %s WHERE id = %s",
+        (new_amount, record_id),
+    )
+    conn.commit()
+    conn.close()
+
+    # Go back to admin dashboard, keeping the Daily report tab open
+    return redirect(url_for("admin", tab="report-section"))
 
 
 # ======================
