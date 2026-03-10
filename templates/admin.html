@@ -152,6 +152,33 @@
         <div class="stats-summary-value">{{ daily_counts.total }}</div>
     </div>
 </div>
+
+<div class="unpaid-section">
+    <div class="unpaid-column">
+        <h3>Bhutan trucks - unpaid</h3>
+        {% if unpaid_bhutanese %}
+            <ul class="unpaid-list">
+                {% for item in unpaid_bhutanese %}
+                    <li>Token {{ item.token }} — {{ item.vehicle }}</li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p class="unpaid-empty">No unpaid Bhutan trucks today.</p>
+        {% endif %}
+    </div>
+    <div class="unpaid-column">
+        <h3>India trucks - unpaid</h3>
+        {% if unpaid_indian %}
+            <ul class="unpaid-list">
+                {% for item in unpaid_indian %}
+                    <li>Token {{ item.token }} — {{ item.vehicle }}</li>
+                {% endfor %}
+            </ul>
+        {% else %}
+            <p class="unpaid-empty">No unpaid India trucks today.</p>
+        {% endif %}
+    </div>
+</div>
 {% else %}
 <p class="error">No data for today yet.</p>
 {% endif %}

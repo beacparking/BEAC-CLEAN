@@ -90,6 +90,8 @@ def admin():
     today = date.today()
     conn = get_db()
     cur = conn.cursor()
+
+    # Daily counts
     cur.execute(
         """
         SELECT truck_type, COUNT(*)
@@ -100,7 +102,6 @@ def admin():
         (today,),
     )
     rows = cur.fetchall()
-    conn.close()
 
     total_today = 0
     bhutanese_today = 0
@@ -111,6 +112,29 @@ def admin():
             bhutanese_today = cnt
         elif t_type == "Indian":
             indian_today = cnt
+
+    # Unpaid tokens (amount 0 or null) for today
+    cur.execute(
+        """
+        SELECT truck_type, daily_token, vehicle_number
+        FROM vehicle_qr
+        WHERE generated_date = %s
+          AND (amount_collected IS NULL OR amount_collected::numeric <= 0)
+        ORDER BY truck_type, daily_token
+        """,
+        (today,),
+    )
+    unpaid_rows = cur.fetchall()
+    conn.close()
+
+    unpaid_bhutanese = []
+    unpaid_indian = []
+    for t_type, token, vehicle in unpaid_rows:
+        item = {"token": token, "vehicle": vehicle}
+        if t_type == "Bhutanese":
+            unpaid_bhutanese.append(item)
+        elif t_type == "Indian":
+            unpaid_indian.append(item)
 
     if request.method == "POST":
         vehicle = request.form.get("vehicle")
@@ -190,6 +214,8 @@ def admin():
             "bhutanese": bhutanese_today,
             "indian": indian_today,
         },
+        unpaid_bhutanese=unpaid_bhutanese,
+        unpaid_indian=unpaid_indian,
     )
 
 
