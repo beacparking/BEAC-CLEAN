@@ -163,7 +163,8 @@ def admin():
 # ======================
 @app.route("/stats", methods=["GET"])
 def stats():
-    if not session.get("stats_logged_in"):
+    # Allow access if logged in as dedicated stats user OR as admin
+    if not (session.get("stats_logged_in") or session.get("logged_in")):
         return redirect(url_for("login"))
 
     date_str = request.args.get("date")
