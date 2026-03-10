@@ -116,7 +116,7 @@ def admin():
     # Unpaid tokens (amount 0 or null) for today
     cur.execute(
         """
-        SELECT id, truck_type, daily_token, vehicle_number
+        SELECT id, truck_type, daily_token, vehicle_number, generated_date, load_type
         FROM vehicle_qr
         WHERE generated_date = %s
           AND (amount_collected IS NULL OR amount_collected::numeric <= 0)
@@ -129,8 +129,15 @@ def admin():
 
     unpaid_bhutanese = []
     unpaid_indian = []
-    for rec_id, t_type, token, vehicle in unpaid_rows:
-        item = {"id": rec_id, "token": token, "vehicle": vehicle, "truck_type": t_type}
+    for rec_id, t_type, token, vehicle, gen_date, load_type in unpaid_rows:
+        item = {
+            "id": rec_id,
+            "token": token,
+            "vehicle": vehicle,
+            "truck_type": t_type,
+            "date": gen_date,
+            "load_type": load_type,
+        }
         if t_type == "Bhutanese":
             unpaid_bhutanese.append(item)
         elif t_type == "Indian":

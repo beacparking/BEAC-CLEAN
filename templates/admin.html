@@ -164,7 +164,9 @@
                         data-id="{{ item.id }}"
                         data-token="{{ item.token }}"
                         data-vehicle="{{ item.vehicle }}"
-                        data-truck="{{ item.truck_type }}">
+                        data-truck="{{ item.truck_type }}"
+                        data-date="{{ item.date }}"
+                        data-load="{{ item.load_type }}">
                         Token {{ item.token }} — {{ item.vehicle }}
                     </li>
                 {% endfor %}
@@ -182,7 +184,9 @@
                         data-id="{{ item.id }}"
                         data-token="{{ item.token }}"
                         data-vehicle="{{ item.vehicle }}"
-                        data-truck="{{ item.truck_type }}">
+                        data-truck="{{ item.truck_type }}"
+                        data-date="{{ item.date }}"
+                        data-load="{{ item.load_type }}">
                         Token {{ item.token }} — {{ item.vehicle }}
                     </li>
                 {% endfor %}
@@ -265,6 +269,10 @@
         const recordInput = document.getElementById('record_id');
         const amountInput = document.getElementById('amount_collected');
         const submitButton = document.getElementById('submit_button');
+        const vehicleInput = document.querySelector('input[name="vehicle"]');
+        const dateInput = document.querySelector('input[name="date"]');
+        const truckSelect = document.querySelector('select[name="truck_type"]');
+        const loadSelect = document.querySelector('select[name="load_type"]');
 
         function startUpdateFromItem(item) {
             // Switch to Token tab
@@ -272,7 +280,17 @@
             if (tokenTab) tokenTab.click();
 
             const id = item.getAttribute('data-id');
+            const vehicle = item.getAttribute('data-vehicle');
+            const truck = item.getAttribute('data-truck');
+            const date = item.getAttribute('data-date');
+            const load = item.getAttribute('data-load');
+
             recordInput.value = id;
+            if (vehicleInput) vehicleInput.value = vehicle || '';
+            if (dateInput && date) dateInput.value = date;
+            if (truckSelect) truckSelect.value = truck || '';
+            if (loadSelect) loadSelect.value = load || '';
+
             amountInput.value = '0.00';
             submitButton.textContent = 'Update';
             amountInput.focus();
