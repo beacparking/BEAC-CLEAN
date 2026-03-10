@@ -86,6 +86,32 @@ def admin():
     qr = None
     error = None
 
+    # Simple daily counts for today's date, shown in Daily report tab
+    today = date.today()
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        SELECT truck_type, COUNT(*)
+        FROM vehicle_qr
+        WHERE generated_date = %s
+        GROUP BY truck_type
+        """,
+        (today,),
+    )
+    rows = cur.fetchall()
+    conn.close()
+
+    total_today = 0
+    bhutanese_today = 0
+    indian_today = 0
+    for t_type, cnt in rows:
+        total_today += cnt
+        if t_type == "Bhutanese":
+            bhutanese_today = cnt
+        elif t_type == "Indian":
+            indian_today = cnt
+
     if request.method == "POST":
         vehicle = request.form.get("vehicle")
         selected_date = request.form.get("date")
@@ -155,7 +181,16 @@ def admin():
                 "qr_url": qr_url
             }
 
-    return render_template("admin.html", qr=qr, error=error)
+    return render_template(
+        "admin.html",
+        qr=qr,
+        error=error,
+        daily_counts={
+            "total": total_today,
+            "bhutanese": bhutanese_today,
+            "indian": indian_today,
+        },
+    )
 
 
 # ======================
