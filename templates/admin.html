@@ -7,14 +7,29 @@
 </head>
 
 <body>
+
+<header class="app-header">
+    <div class="app-header-left">
+        <div class="app-logo-circle">B</div>
+        <div class="app-title-group">
+            <span class="app-title">BEAC Vehicle QR System</span>
+            <span class="app-subtitle">Admin dashboard</span>
+        </div>
+    </div>
+    <nav class="main-nav">
+        <button type="button" class="nav-link active" data-target="token-section">Token</button>
+        <button type="button" class="nav-link" data-target="csv-section">CSV</button>
+    </nav>
+    <div class="app-header-right">
+        <span class="app-user-label">Logged in as</span>
+        <span class="app-user-name">Admin</span>
+        <a href="/logout" class="logout small">Logout</a>
+    </div>
+</header>
+
 <div class="page">
 
-<h1>BEAC Vehicle QR system</h1>
-
-<div class="top-nav">
-    <button type="button" class="nav-link active" data-target="token-section">Token</button>
-    <button type="button" class="nav-link" data-target="csv-section">CSV</button>
-</div>
+<h1>Dashboard</h1>
 
 <div id="token-section" class="dashboard-section">
 <form method="POST" class="qr-form">
@@ -117,8 +132,6 @@
 </div>
 <hr class="section-divider">
 </div>  <!-- /csv-section -->
-
-<a href="/logout" class="logout">Logout</a>
 
 </div>
 
