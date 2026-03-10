@@ -11,6 +11,12 @@
 
 <h1>BEAC Vehicle QR system</h1>
 
+<div class="top-nav">
+    <button type="button" class="nav-link active" data-target="token-section">Token</button>
+    <button type="button" class="nav-link" data-target="csv-section">CSV</button>
+</div>
+
+<div id="token-section" class="dashboard-section">
 <form method="POST" class="qr-form">
     <div class="field">
         <label>Vehicle number</label>
@@ -70,9 +76,9 @@
     </p>
 </div>
 {% endif %}
+</div>  <!-- /token-section -->
 
-<hr>
-
+<div id="csv-section" class="dashboard-section hidden">
 <h2>Export CSV</h2>
 
 <div class="export-box">
@@ -109,6 +115,8 @@
         <button type="submit">Export Date</button>
     </form>
 </div>
+<hr class="section-divider">
+</div>  <!-- /csv-section -->
 
 <a href="/logout" class="logout">Logout</a>
 
@@ -131,6 +139,31 @@
 
         amountInput.addEventListener('input', updateSat);
         updateSat();
+    })();
+
+    (function () {
+        const links = document.querySelectorAll('.top-nav .nav-link');
+        const sections = {
+            'token-section': document.getElementById('token-section'),
+            'csv-section': document.getElementById('csv-section')
+        };
+
+        links.forEach(link => {
+            link.addEventListener('click', () => {
+                const target = link.getAttribute('data-target');
+
+                links.forEach(l => l.classList.remove('active'));
+                link.classList.add('active');
+
+                Object.keys(sections).forEach(key => {
+                    if (key === target) {
+                        sections[key].classList.remove('hidden');
+                    } else {
+                        sections[key].classList.add('hidden');
+                    }
+                });
+            });
+        });
     })();
 </script>
 </body>

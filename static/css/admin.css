@@ -159,6 +159,44 @@ hr {
     background-color: rgba(148, 163, 184, 0.16);
 }
 
+.top-nav {
+    display: inline-flex;
+    gap: 8px;
+    margin-bottom: 16px;
+    padding: 4px;
+    border-radius: 999px;
+    background: rgba(15, 23, 42, 0.9);
+    border: 1px solid rgba(148, 163, 184, 0.35);
+}
+
+.top-nav .nav-link {
+    padding: 6px 16px;
+    border-radius: 999px;
+    border: none;
+    background: transparent;
+    color: #e5f4f0;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.top-nav .nav-link.active {
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+    color: #022c22;
+}
+
+.dashboard-section {
+    margin-top: 8px;
+}
+
+.hidden {
+    display: none;
+}
+
+.section-divider {
+    margin-top: 24px;
+}
+
 @media (min-width: 900px) {
     .export-box {
         grid-template-columns: repeat(2, minmax(0, 1fr));
