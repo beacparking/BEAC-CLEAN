@@ -103,12 +103,12 @@ def admin():
             cur = conn.cursor()
 
             try:
-                # 🔢 DAILY TOKEN CALCULATION (one sequence per day for all vehicles)
+                # 🔢 DAILY TOKEN CALCULATION (separate per truck type)
                 cur.execute("""
                     SELECT COALESCE(MAX(daily_token), 0) + 1
                     FROM vehicle_qr
-                    WHERE generated_date = %s
-                """, (generated_date,))
+                    WHERE generated_date = %s AND truck_type = %s
+                """, (generated_date, truck_type))
                 daily_token = cur.fetchone()[0]
 
                 # INSERT NEW QR
