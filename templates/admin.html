@@ -19,6 +19,7 @@
     <nav class="main-nav">
         <button type="button" class="nav-link active" data-target="token-section">Token</button>
         <button type="button" class="nav-link" data-target="csv-section">CSV</button>
+        <button type="button" class="nav-link" data-href="{{ url_for('stats') }}">Daily report</button>
     </nav>
     <div class="app-header-right">
         <span class="app-user-label">Logged in as</span>
@@ -164,6 +165,13 @@
         links.forEach(link => {
             link.addEventListener('click', () => {
                 const target = link.getAttribute('data-target');
+                const href = link.getAttribute('data-href');
+
+                // If this nav item is meant to navigate to another page (daily report)
+                if (href && (!target || !sections[target])) {
+                    window.location.href = href;
+                    return;
+                }
 
                 links.forEach(l => l.classList.remove('active'));
                 link.classList.add('active');
