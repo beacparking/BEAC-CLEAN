@@ -137,73 +137,107 @@ def admin():
             unpaid_indian.append(item)
 
     if request.method == "POST":
+        record_id = request.form.get("record_id")
         vehicle = request.form.get("vehicle")
         selected_date = request.form.get("date")
         truck_type = request.form.get("truck_type")
         load_type = request.form.get("load_type")
         amount_collected = request.form.get("amount_collected")
 
-        if not vehicle or not selected_date or not truck_type or not load_type or not amount_collected:
-            error = "Vehicle number, date, truck type, load type and amount are required"
-        else:
-            generated_date = datetime.strptime(selected_date, "%Y-%m-%d").date()
-            expires_date = generated_date + timedelta(days=2)  # today + tomorrow
-
-            conn = get_db()
-            cur = conn.cursor()
-
-            try:
-                # 🔢 DAILY TOKEN CALCULATION (separate per truck type)
-                cur.execute("""
-                    SELECT COALESCE(MAX(daily_token), 0) + 1
-                    FROM vehicle_qr
-                    WHERE generated_date = %s AND truck_type = %s
-                """, (generated_date, truck_type))
-                daily_token = cur.fetchone()[0]
-
-                # INSERT NEW QR
-                cur.execute("""
-                    INSERT INTO vehicle_qr
-                    (vehicle_number, truck_type, load_type, amount_collected, generated_date, expires_date, daily_token)
-                    VALUES (%s, %s, %s, %s, %s, %s, %s)
-                    RETURNING id
-                """, (vehicle, truck_type, load_type, amount_collected, generated_date, expires_date, daily_token))
-
-                token_id = cur.fetchone()[0]
+        # If editing an existing unpaid token, only amount is required
+        if record_id:
+            if not amount_collected:
+                error = "Amount is required to update."
+            else:
+                conn = get_db()
+                cur = conn.cursor()
+                cur.execute(
+                    """
+                    UPDATE vehicle_qr
+                    SET amount_collected = %s
+                    WHERE id = %s
+                    RETURNING vehicle_number, truck_type, load_type, daily_token, expires_date
+                    """,
+                    (amount_collected, record_id),
+                )
+                row = cur.fetchone()
                 conn.commit()
+                conn.close()
 
-            except psycopg2.errors.UniqueViolation:
-                # 🔒 DUPLICATE LOCK — reuse existing QR
-                conn.rollback()
-                cur.execute("""
-                    SELECT id, daily_token, expires_date
-                    FROM vehicle_qr
-                    WHERE vehicle_number = %s AND generated_date = %s
-                """, (vehicle, generated_date))
-                token_id, daily_token, expires_date = cur.fetchone()
+                if row:
+                    vehicle, truck_type, load_type, daily_token, expires_date = row
+                    qr = {
+                        "token": daily_token,
+                        "vehicle": vehicle,
+                        "truck_type": truck_type,
+                        "load_type": load_type,
+                        "amount_collected": amount_collected,
+                        "expiry": expires_date.strftime("%d-%m-%Y"),
+                        "qr_path": None,
+                        "qr_url": None,
+                    }
+        else:
+            if not vehicle or not selected_date or not truck_type or not load_type or not amount_collected:
+                error = "Vehicle number, date, truck type, load type and amount are required"
+            else:
+                generated_date = datetime.strptime(selected_date, "%Y-%m-%d").date()
+                expires_date = generated_date + timedelta(days=2)  # today + tomorrow
 
-            conn.close()
+                conn = get_db()
+                cur = conn.cursor()
 
-            base_url = BASE_URL or request.host_url
-            if not base_url.endswith("/"):
-                base_url += "/"
-            qr_url = f"{base_url}verify/{token_id}"
-            qr_path = f"static/qr/{token_id}.png"
+                try:
+                    # 🔢 DAILY TOKEN CALCULATION (separate per truck type)
+                    cur.execute("""
+                        SELECT COALESCE(MAX(daily_token), 0) + 1
+                        FROM vehicle_qr
+                        WHERE generated_date = %s AND truck_type = %s
+                    """, (generated_date, truck_type))
+                    daily_token = cur.fetchone()[0]
 
-            os.makedirs("static/qr", exist_ok=True)
-            # Always overwrite so QR contains current base URL (important after deploy)
-            qrcode.make(qr_url).save(qr_path)
+                    # INSERT NEW QR
+                    cur.execute("""
+                        INSERT INTO vehicle_qr
+                        (vehicle_number, truck_type, load_type, amount_collected, generated_date, expires_date, daily_token)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s)
+                        RETURNING id
+                    """, (vehicle, truck_type, load_type, amount_collected, generated_date, expires_date, daily_token))
 
-            qr = {
-                "token": daily_token,
-                "vehicle": vehicle,
-                "truck_type": truck_type,
-                "load_type": load_type,
-                "amount_collected": amount_collected,
-                "expiry": expires_date.strftime("%d-%m-%Y"),
-                "qr_path": qr_path,
-                "qr_url": qr_url
-            }
+                    token_id = cur.fetchone()[0]
+                    conn.commit()
+
+                except psycopg2.errors.UniqueViolation:
+                    # 🔒 DUPLICATE LOCK — reuse existing QR
+                    conn.rollback()
+                    cur.execute("""
+                        SELECT id, daily_token, expires_date
+                        FROM vehicle_qr
+                        WHERE vehicle_number = %s AND generated_date = %s
+                    """, (vehicle, generated_date))
+                    token_id, daily_token, expires_date = cur.fetchone()
+
+                conn.close()
+
+                base_url = BASE_URL or request.host_url
+                if not base_url.endswith("/"):
+                    base_url += "/"
+                qr_url = f"{base_url}verify/{token_id}"
+                qr_path = f"static/qr/{token_id}.png"
+
+                os.makedirs("static/qr", exist_ok=True)
+                # Always overwrite so QR contains current base URL (important after deploy)
+                qrcode.make(qr_url).save(qr_path)
+
+                qr = {
+                    "token": daily_token,
+                    "vehicle": vehicle,
+                    "truck_type": truck_type,
+                    "load_type": load_type,
+                    "amount_collected": amount_collected,
+                    "expiry": expires_date.strftime("%d-%m-%Y"),
+                    "qr_path": qr_path,
+                    "qr_url": qr_url
+                }
 
     return render_template(
         "admin.html",
@@ -218,29 +252,6 @@ def admin():
         unpaid_indian=unpaid_indian,
     )
 
-
-@app.route("/admin/update_amount", methods=["POST"])
-def update_amount():
-    if not session.get("logged_in"):
-        return redirect(url_for("login"))
-
-    record_id = request.form.get("record_id")
-    new_amount = request.form.get("amount_collected")
-
-    if not record_id or new_amount is None:
-        return redirect(url_for("admin", tab="report-section"))
-
-    conn = get_db()
-    cur = conn.cursor()
-    cur.execute(
-        "UPDATE vehicle_qr SET amount_collected = %s WHERE id = %s",
-        (new_amount, record_id),
-    )
-    conn.commit()
-    conn.close()
-
-    # Go back to admin dashboard, keeping the Daily report tab open
-    return redirect(url_for("admin", tab="report-section"))
 
 
 # ======================
