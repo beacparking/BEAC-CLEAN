@@ -358,6 +358,42 @@ def stats_export():
         return redirect(url_for("stats"))
     d = datetime.strptime(date_str, "%Y-%m-%d").date()
     truck_type = request.args.get("truck_type")
+    summary = request.args.get("summary")
+
+    # Summary CSV: single row with total / Bhutanese / Indian amounts
+    if summary == "1":
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute(
+            """
+            SELECT
+              COALESCE(SUM(CASE WHEN truck_type = 'Bhutanese' THEN amount_collected END), 0) AS bhutanese_amount,
+              COALESCE(SUM(CASE WHEN truck_type = 'Indian' THEN amount_collected END), 0) AS indian_amount
+            FROM vehicle_qr
+            WHERE generated_date = %s
+            """,
+            (d,),
+        )
+        row = cur.fetchone()
+        conn.close()
+
+        bhutan_amt = float(row[0] or 0)
+        indian_amt = float(row[1] or 0)
+        total_amt = bhutan_amt + indian_amt
+
+        output = io.StringIO()
+        writer = csv.writer(output)
+        writer.writerow(["Date", "Total amount", "Bhutanese amount", "Indian amount"])
+        writer.writerow(
+            [d.isoformat(), f"{total_amt:.2f}", f"{bhutan_amt:.2f}", f"{indian_amt:.2f}"]
+        )
+
+        return send_file(
+            io.BytesIO(output.getvalue().encode()),
+            mimetype="text/csv",
+            as_attachment=True,
+            download_name=f"stats_summary_{d}.csv",
+        )
 
     conn = get_db()
     cur = conn.cursor()

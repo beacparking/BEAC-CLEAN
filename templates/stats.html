@@ -129,6 +129,7 @@
         <span>Download CSV:</span>
         <a href="{{ url_for('stats_export', date=stats_date.isoformat(), truck_type='Bhutanese') }}" class="logout">Bhutanese vehicles</a>
         <a href="{{ url_for('stats_export', date=stats_date.isoformat(), truck_type='Indian') }}" class="logout">Indian vehicles</a>
+        <a href="{{ url_for('stats_export', date=stats_date.isoformat(), summary='1') }}" class="logout">Summary (totals)</a>
     </div>
 </div>
 {% endif %}
