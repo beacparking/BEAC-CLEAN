@@ -36,6 +36,10 @@
 <form method="POST" class="qr-form" id="token-form">
     <input type="hidden" name="record_id" id="record_id">
     <div class="field">
+        <label>Token number</label>
+        <input type="number" min="1" name="daily_token" placeholder="e.g. 1" required>
+    </div>
+    <div class="field">
         <label>Vehicle number</label>
         <input type="text" name="vehicle" placeholder="e.g. BP-2A-1234" required>
     </div>

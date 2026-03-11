@@ -145,6 +145,7 @@ def admin():
 
     if request.method == "POST":
         record_id = request.form.get("record_id")
+        daily_token_input = request.form.get("daily_token")
         vehicle = request.form.get("vehicle")
         selected_date = request.form.get("date")
         truck_type = request.form.get("truck_type")
@@ -184,9 +185,16 @@ def admin():
                         "qr_url": None,
                     }
         else:
-            if not vehicle or not selected_date or not truck_type or not load_type or not amount_collected:
-                error = "Vehicle number, date, truck type, load type and amount are required"
+            if not daily_token_input or not vehicle or not selected_date or not truck_type or not load_type or not amount_collected:
+                error = "Token number, vehicle number, date, truck type, load type and amount are required"
             else:
+                try:
+                    daily_token = int(daily_token_input)
+                except ValueError:
+                    error = "Token number must be a number"
+                    daily_token = None
+
+            if not error:
                 generated_date = datetime.strptime(selected_date, "%Y-%m-%d").date()
                 expires_date = generated_date + timedelta(days=2)  # today + tomorrow
 
@@ -194,14 +202,6 @@ def admin():
                 cur = conn.cursor()
 
                 try:
-                    # 🔢 DAILY TOKEN CALCULATION (separate per truck type)
-                    cur.execute("""
-                        SELECT COALESCE(MAX(daily_token), 0) + 1
-                        FROM vehicle_qr
-                        WHERE generated_date = %s AND truck_type = %s
-                    """, (generated_date, truck_type))
-                    daily_token = cur.fetchone()[0]
-
                     # INSERT NEW QR
                     cur.execute("""
                         INSERT INTO vehicle_qr
