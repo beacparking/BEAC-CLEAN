@@ -259,6 +259,7 @@ def admin():
         "admin.html",
         qr=qr,
         error=error,
+        default_date=today,
         daily_counts={
             "total": total_today,
             "bhutanese": bhutanese_today,
