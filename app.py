@@ -150,6 +150,7 @@ def admin():
         selected_date = request.form.get("date")
         truck_type = request.form.get("truck_type")
         load_type = request.form.get("load_type")
+        ticket_number = request.form.get("ticket_number")
         amount_collected = request.form.get("amount_collected")
 
         # If editing an existing unpaid token, only amount is required
@@ -205,10 +206,10 @@ def admin():
                     # INSERT NEW QR
                     cur.execute("""
                         INSERT INTO vehicle_qr
-                        (vehicle_number, truck_type, load_type, amount_collected, generated_date, expires_date, daily_token)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s)
+                        (vehicle_number, truck_type, load_type, ticket_number, amount_collected, generated_date, expires_date, daily_token)
+                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                         RETURNING id
-                    """, (vehicle, truck_type, load_type, amount_collected, generated_date, expires_date, daily_token))
+                    """, (vehicle, truck_type, load_type, ticket_number, amount_collected, generated_date, expires_date, daily_token))
 
                     token_id = cur.fetchone()[0]
                     conn.commit()
@@ -398,7 +399,7 @@ def stats_export():
     conn = get_db()
     cur = conn.cursor()
     query = """
-        SELECT daily_token, vehicle_number, truck_type, load_type, amount_collected, generated_date, expires_date
+        SELECT daily_token, vehicle_number, truck_type, load_type, ticket_number, amount_collected, generated_date, expires_date
         FROM vehicle_qr
         WHERE generated_date = %s
     """
@@ -461,10 +462,10 @@ def verify(token_id):
 def export_csv(rows, filename):
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(["Daily Token", "Vehicle", "Truck Type", "Load Type", "Amount Collected"])
+    writer.writerow(["Daily Token", "Vehicle", "Truck Type", "Load Type", "Ticket Number", "Amount Collected"])
 
     for r in rows:
-        writer.writerow(r[:5])
+        writer.writerow(r[:6])
 
     return send_file(
         io.BytesIO(output.getvalue().encode()),
@@ -487,7 +488,7 @@ def export_day():
     conn = get_db()
     cur = conn.cursor()
     query = """
-        SELECT daily_token, vehicle_number, truck_type, load_type, amount_collected, generated_date, expires_date
+        SELECT daily_token, vehicle_number, truck_type, load_type, ticket_number, amount_collected, generated_date, expires_date
         FROM vehicle_qr
         WHERE generated_date = %s
     """
@@ -518,7 +519,7 @@ def export_week():
     conn = get_db()
     cur = conn.cursor()
     query = """
-        SELECT daily_token, vehicle_number, truck_type, load_type, amount_collected, generated_date, expires_date
+        SELECT daily_token, vehicle_number, truck_type, load_type, ticket_number, amount_collected, generated_date, expires_date
         FROM vehicle_qr
         WHERE generated_date BETWEEN %s AND %s
     """
