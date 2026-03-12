@@ -269,7 +269,6 @@ def admin():
         (today,),
     )
     last_rows = cur.fetchall()
-    conn.close()
 
     last_entries = [
         {
@@ -284,11 +283,30 @@ def admin():
         for r in last_rows
     ]
 
+    # Optional search by vehicle number (all dates)
+    search_vehicle = request.args.get("search_vehicle")
+    search_rows = []
+    if search_vehicle:
+        cur.execute(
+            """
+            SELECT daily_token, ticket_number, generated_date, amount_collected
+            FROM vehicle_qr
+            WHERE vehicle_number = %s
+            ORDER BY generated_date DESC, daily_token DESC
+            """,
+            (search_vehicle,),
+        )
+        search_rows = cur.fetchall()
+
+    conn.close()
+
     return render_template(
         "admin.html",
         qr=qr,
         error=error,
         default_date=today,
+        search_vehicle=search_vehicle,
+        search_rows=search_rows,
         daily_counts={
             "total": total_today,
             "bhutanese": bhutanese_today,

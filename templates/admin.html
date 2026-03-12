@@ -136,6 +136,47 @@
     </table>
 </div>
 {% endif %}
+
+<div class="qr-box" style="margin-top: 12px;">
+    <form method="GET" class="qr-form">
+        <div class="field">
+            <label>Search by vehicle number</label>
+            <input type="text" name="search_vehicle" placeholder="e.g. BP-2A-1234" value="{{ search_vehicle or '' }}">
+        </div>
+        <button type="submit">Search</button>
+    </form>
+
+    {% if search_vehicle %}
+        <hr style="margin: 16px 0;">
+        <p><b>Search result for:</b> {{ search_vehicle }}</p>
+        {% if search_rows %}
+            <table class="stats-table">
+                <thead>
+                    <tr>
+                        <th>Token</th>
+                        <th>Ticket number</th>
+                        <th>Date</th>
+                        <th>Amount</th>
+                        <th>SAT</th>
+                    </tr>
+                </thead>
+                <tbody>
+                {% for r in search_rows %}
+                    <tr>
+                        <td>{{ r[0] }}</td>
+                        <td>{{ r[1] }}</td>
+                        <td>{{ r[2].strftime('%d-%m-%Y') }}</td>
+                        <td>{{ '%.2f'|format(r[3] or 0) }}</td>
+                        <td>{% if r[3] and r[3]|float > 0 %}Paid{% else %}Unpaid{% endif %}</td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <p class="unpaid-empty">No records found for this vehicle.</p>
+        {% endif %}
+    {% endif %}
+</div>
 </div>  <!-- /token-section -->
 
 <div id="csv-section" class="dashboard-section hidden">
