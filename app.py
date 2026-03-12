@@ -493,6 +493,7 @@ def stats_export():
     d = datetime.strptime(date_str, "%Y-%m-%d").date()
     truck_type = request.args.get("truck_type")
     summary = request.args.get("summary")
+    only_200 = request.args.get("only_200")
 
     # Summary CSV: single row with total / Bhutanese / Indian amounts
     if summary == "1":
@@ -527,6 +528,37 @@ def stats_export():
             mimetype="text/csv",
             as_attachment=True,
             download_name=f"stats_summary_{d}.csv",
+        )
+
+    # CSV of Indian vehicles with amount 200 (the ones hidden on BEA members page)
+    if only_200 == "1":
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute(
+            """
+            SELECT daily_token, truck_type, load_type, amount_collected, ticket_number
+            FROM vehicle_qr
+            WHERE generated_date = %s
+              AND truck_type = 'Indian'
+              AND amount_collected = 200
+            ORDER BY daily_token
+            """,
+            (d,),
+        )
+        rows = cur.fetchall()
+        conn.close()
+
+        output = io.StringIO()
+        writer = csv.writer(output)
+        writer.writerow(["Token", "Truck Type", "Load Type", "Amount", "Ticket Number"])
+        for r in rows:
+            writer.writerow(r)
+
+        return send_file(
+            io.BytesIO(output.getvalue().encode()),
+            mimetype="text/csv",
+            as_attachment=True,
+            download_name=f"stats_indian_200_{d}.csv",
         )
 
     conn = get_db()
