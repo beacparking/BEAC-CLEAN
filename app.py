@@ -26,6 +26,8 @@ ADMIN_USERNAME = "admin"
 ADMIN_PASSWORD = "admin123"
 STATS_USERNAME = "beac"
 STATS_PASSWORD = "beac"
+MEMBERS_USERNAME = "member"
+MEMBERS_PASSWORD = "member"
 
 @app.route("/")
 def home():
@@ -65,6 +67,10 @@ def login():
         if username == STATS_USERNAME and password == STATS_PASSWORD:
             session["stats_logged_in"] = True
             return redirect(url_for("stats"))
+
+        if username == MEMBERS_USERNAME and password == MEMBERS_PASSWORD:
+            session["members_logged_in"] = True
+            return redirect(url_for("members"))
 
         return render_template("login.html", error="Invalid credentials")
 
@@ -347,6 +353,66 @@ def stats():
     }
 
     return render_template("stats.html", stats=stats_data, stats_date=stats_date)
+
+
+# ======================
+# BEA MEMBERS (Indian count shown 30 less by end of day, ramps by hour)
+# ======================
+@app.route("/members", methods=["GET"])
+def members():
+    if not session.get("members_logged_in"):
+        return redirect(url_for("login"))
+
+    date_str = request.args.get("date")
+    if date_str:
+        members_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+    else:
+        members_date = date.today()
+
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        SELECT truck_type, COUNT(*)
+        FROM vehicle_qr
+        WHERE generated_date = %s
+        GROUP BY truck_type
+        """,
+        (members_date,),
+    )
+    rows = cur.fetchall()
+    conn.close()
+
+    bhutanese = 0
+    indian_actual = 0
+    for t_type, cnt in rows:
+        if t_type == "Bhutanese":
+            bhutanese = cnt
+        elif t_type == "Indian":
+            indian_actual = cnt
+
+    # Indian shown 30 less than stats by end of day; during the day subtract 1–3 per hour
+    today = date.today()
+    if members_date > today:
+        subtraction = 0
+    elif members_date < today:
+        subtraction = 30
+    else:
+        now = datetime.now()
+        hours_elapsed = now.hour + now.minute / 60.0 + now.second / 3600.0
+        # Ramp so that by end of day (24h) we have subtracted 30 (~1.25/hour, in 1–3 range)
+        subtraction = min(30, 30.0 * hours_elapsed / 24.0)
+        subtraction = round(subtraction)
+
+    indian_display = max(0, indian_actual - subtraction)
+
+    return render_template(
+        "members.html",
+        members_date=members_date,
+        bhutanese=bhutanese,
+        indian=indian_display,
+        indian_actual=indian_actual,
+    )
 
 
 @app.route("/stats/export")
