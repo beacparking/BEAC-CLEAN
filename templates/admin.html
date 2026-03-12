@@ -102,6 +102,40 @@
     </p>
 </div>
 {% endif %}
+
+{% if last_entries %}
+<div class="qr-box" style="margin-top: 12px;">
+    <p><b>Last 3 vehicles (today)</b></p>
+    <table class="stats-table">
+        <thead>
+            <tr>
+                <th>Token</th>
+                <th>Date</th>
+                <th>Vehicle</th>
+                <th>Truck type</th>
+                <th>Load type</th>
+                <th>Ticket number</th>
+                <th>Amount</th>
+                <th>SAT</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for r in last_entries %}
+            <tr>
+                <td>{{ r.token }}</td>
+                <td>{{ r.date.strftime('%d-%m-%Y') }}</td>
+                <td>{{ r.vehicle }}</td>
+                <td>{{ r.truck_type }}</td>
+                <td>{{ r.load_type }}</td>
+                <td>{{ r.ticket_number }}</td>
+                <td>{{ '%.2f'|format(r.amount_collected or 0) }}</td>
+                <td>{% if r.amount_collected and r.amount_collected|float > 0 %}Paid{% else %}Unpaid{% endif %}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endif %}
 </div>  <!-- /token-section -->
 
 <div id="csv-section" class="dashboard-section hidden">

@@ -254,6 +254,35 @@ def admin():
                     "qr_path": qr_path,
                     "qr_url": qr_url
                 }
+    # Last 3 vehicles for today (any truck type)
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        SELECT daily_token, vehicle_number, generated_date, truck_type,
+               load_type, ticket_number, amount_collected
+        FROM vehicle_qr
+        WHERE generated_date = %s
+        ORDER BY id DESC
+        LIMIT 3
+        """,
+        (today,),
+    )
+    last_rows = cur.fetchall()
+    conn.close()
+
+    last_entries = [
+        {
+            "token": r[0],
+            "vehicle": r[1],
+            "date": r[2],
+            "truck_type": r[3],
+            "load_type": r[4],
+            "ticket_number": r[5],
+            "amount_collected": r[6],
+        }
+        for r in last_rows
+    ]
 
     return render_template(
         "admin.html",
@@ -265,6 +294,7 @@ def admin():
             "bhutanese": bhutanese_today,
             "indian": indian_today,
         },
+        last_entries=last_entries,
         unpaid_bhutanese=unpaid_bhutanese,
         unpaid_indian=unpaid_indian,
     )
