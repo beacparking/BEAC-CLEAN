@@ -432,7 +432,6 @@ def members():
         (members_date,),
     )
     rows = cur.fetchall()
-    conn.close()
 
     bhutanese = 0
     indian_actual = 0
@@ -442,17 +441,34 @@ def members():
         elif t_type == "Indian":
             indian_actual = cnt
 
-    # Indian shown 30 less than stats by end of day; during the day subtract 1–3 per hour
+    # Count Indian vehicles with amount = 200 (these are the 30 to hide)
+    cur.execute(
+        """
+        SELECT COUNT(*)
+        FROM vehicle_qr
+        WHERE generated_date = %s
+          AND truck_type = 'Indian'
+          AND amount_collected = 200
+        """,
+        (members_date,),
+    )
+    indian_200 = cur.fetchone()[0] or 0
+    conn.close()
+
+    # Target subtraction is up to 30 vehicles, but not more than Indian with amount 200
+    target_subtraction = min(30, indian_200)
+
+    # Indian shown less than stats by end of day; during the day subtract 1–3 per hour on average
     today = date.today()
     if members_date > today:
         subtraction = 0
     elif members_date < today:
-        subtraction = 30
+        subtraction = target_subtraction
     else:
         now = datetime.now()
         hours_elapsed = now.hour + now.minute / 60.0 + now.second / 3600.0
-        # Ramp so that by end of day (24h) we have subtracted 30 (~1.25/hour, in 1–3 range)
-        subtraction = min(30, 30.0 * hours_elapsed / 24.0)
+        # Ramp so that by end of day (24h) we reach the target subtraction
+        subtraction = min(target_subtraction, target_subtraction * hours_elapsed / 24.0)
         subtraction = round(subtraction)
 
     indian_display = max(0, indian_actual - subtraction)
