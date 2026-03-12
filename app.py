@@ -479,6 +479,7 @@ def members():
         bhutanese=bhutanese,
         indian=indian_display,
         indian_actual=indian_actual,
+        indian_subtracted=subtraction,
     )
 
 

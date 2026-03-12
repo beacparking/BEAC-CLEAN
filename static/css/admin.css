@@ -288,6 +288,12 @@ hr {
     font-weight: 600;
 }
 
+.stats-summary-sublabel {
+    font-size: 11px;
+    opacity: 0.85;
+    margin-top: 2px;
+}
+
 .stats-tables {
     display: grid;
     grid-template-columns: 1fr;
