@@ -24,8 +24,8 @@ def get_db():
 # ======================
 ADMIN_USERNAME = "admin"
 ADMIN_PASSWORD = "admin123"
-STATS_USERNAME = "beac"
-STATS_PASSWORD = "beac"
+STATS_USERNAME = "620443"
+STATS_PASSWORD = "620443"
 MEMBERS_USERNAME = "member"
 MEMBERS_PASSWORD = "member"
 
@@ -171,7 +171,7 @@ def admin():
                     UPDATE vehicle_qr
                     SET amount_collected = %s
                     WHERE id = %s
-                    RETURNING vehicle_number, truck_type, load_type, daily_token, expires_date
+                    RETURNING vehicle_number, truck_type, load_type, daily_token, expires_date, ticket_number
                     """,
                     (amount_collected, record_id),
                 )
@@ -180,13 +180,14 @@ def admin():
                 conn.close()
 
                 if row:
-                    vehicle, truck_type, load_type, daily_token, expires_date = row
+                    vehicle, truck_type, load_type, daily_token, expires_date, ticket_number_row = row
                     qr = {
                         "token": daily_token,
                         "vehicle": vehicle,
                         "truck_type": truck_type,
                         "load_type": load_type,
                         "amount_collected": amount_collected,
+                        "ticket_number": ticket_number_row or "",
                         "expiry": expires_date.strftime("%d-%m-%Y"),
                         "qr_path": None,
                         "qr_url": None,
@@ -248,6 +249,7 @@ def admin():
                     "truck_type": truck_type,
                     "load_type": load_type,
                     "amount_collected": amount_collected,
+                    "ticket_number": ticket_number or "",
                     "expiry": expires_date.strftime("%d-%m-%Y"),
                     "qr_path": qr_path,
                     "qr_url": qr_url

@@ -92,6 +92,7 @@
     <p><b>Truck Type:</b> {{ qr.truck_type }}</p>
     <p><b>Load Type:</b> {{ qr.load_type }}</p>
     <p><b>Amount Collected:</b> {{ qr.amount_collected }}</p>
+    <p><b>Ticket number:</b> {{ qr.ticket_number|default('', true) }}</p>
     <p><b>SAT:</b>
         {% if qr.amount_collected and qr.amount_collected|float > 0 %}
             Paid
