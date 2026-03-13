@@ -165,15 +165,23 @@
                 </thead>
                 <tbody>
                 {% for r in search_rows %}
-                    <tr>
-                        <td>{{ r[0] }}</td>
+                    <tr class="search-item"
+                        data-id="{{ r[0] }}"
+                        data-token="{{ r[1] }}"
+                        data-ticket="{{ r[2] }}"
+                        data-date="{{ r[3].strftime('%Y-%m-%d') }}"
+                        data-amount="{{ r[4] }}"
+                        data-vehicle="{{ r[5] }}"
+                        data-truck="{{ r[6] }}"
+                        data-load="{{ r[7] }}">
                         <td>{{ r[1] }}</td>
-                        <td>{{ r[4] }}</td>
+                        <td>{{ r[2] }}</td>
                         <td>{{ r[5] }}</td>
                         <td>{{ r[6] }}</td>
-                        <td>{{ r[2].strftime('%d-%m-%Y') }}</td>
-                        <td>{{ '%.2f'|format(r[3] or 0) }}</td>
-                        <td>{% if r[3] and r[3]|float > 0 %}Paid{% else %}Unpaid{% endif %}</td>
+                        <td>{{ r[7] }}</td>
+                        <td>{{ r[3].strftime('%d-%m-%Y') }}</td>
+                        <td>{{ '%.2f'|format(r[4] or 0) }}</td>
+                        <td>{% if r[4] and r[4]|float > 0 %}Paid{% else %}Unpaid{% endif %}</td>
                     </tr>
                 {% endfor %}
                 </tbody>
@@ -363,6 +371,8 @@
         const dateInput = document.querySelector('input[name="date"]');
         const truckSelect = document.querySelector('select[name="truck_type"]');
         const loadSelect = document.querySelector('select[name="load_type"]');
+        const tokenInput = document.querySelector('input[name="daily_token"]');
+        const ticketInput = document.querySelector('input[name="ticket_number"]');
 
         function startUpdateFromItem(item) {
             // Switch to Token tab
@@ -374,19 +384,27 @@
             const truck = item.getAttribute('data-truck');
             const date = item.getAttribute('data-date');
             const load = item.getAttribute('data-load');
+            const token = item.getAttribute('data-token');
+            const ticket = item.getAttribute('data-ticket');
+            const amount = item.getAttribute('data-amount');
 
             recordInput.value = id;
             if (vehicleInput) vehicleInput.value = vehicle || '';
             if (dateInput && date) dateInput.value = date;
             if (truckSelect) truckSelect.value = truck || '';
             if (loadSelect) loadSelect.value = load || '';
+            if (tokenInput && token) tokenInput.value = token;
+            if (ticketInput) ticketInput.value = ticket || '';
 
-            amountInput.value = '0.00';
+            amountInput.value = amount !== null && amount !== undefined && amount !== '' ? amount : '0.00';
             submitButton.textContent = 'Update';
             amountInput.focus();
         }
 
         document.querySelectorAll('.unpaid-item').forEach(item => {
+            item.addEventListener('click', () => startUpdateFromItem(item));
+        });
+        document.querySelectorAll('.search-item').forEach(item => {
             item.addEventListener('click', () => startUpdateFromItem(item));
         });
     })();

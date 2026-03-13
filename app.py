@@ -159,7 +159,7 @@ def admin():
         ticket_number = request.form.get("ticket_number")
         amount_collected = request.form.get("amount_collected")
 
-        # If editing an existing unpaid token, only amount is required
+        # If editing an existing token, allow changing vehicle, ticket and amount
         if record_id:
             if not amount_collected:
                 error = "Amount is required to update."
@@ -169,11 +169,13 @@ def admin():
                 cur.execute(
                     """
                     UPDATE vehicle_qr
-                    SET amount_collected = %s
+                    SET vehicle_number = %s,
+                        ticket_number = %s,
+                        amount_collected = %s
                     WHERE id = %s
                     RETURNING vehicle_number, truck_type, load_type, daily_token, expires_date, ticket_number
                     """,
-                    (amount_collected, record_id),
+                    (vehicle, ticket_number, amount_collected, record_id),
                 )
                 row = cur.fetchone()
                 conn.commit()
@@ -297,7 +299,7 @@ def admin():
             search_mode = "token"
             cur.execute(
                 """
-                SELECT daily_token, ticket_number, generated_date, amount_collected, vehicle_number, truck_type, load_type
+                SELECT id, daily_token, ticket_number, generated_date, amount_collected, vehicle_number, truck_type, load_type
                 FROM vehicle_qr
                 WHERE daily_token = %s
                 ORDER BY generated_date DESC, daily_token DESC
@@ -308,7 +310,7 @@ def admin():
             search_mode = "vehicle"
             cur.execute(
                 """
-                SELECT daily_token, ticket_number, generated_date, amount_collected, vehicle_number, truck_type, load_type
+                SELECT id, daily_token, ticket_number, generated_date, amount_collected, vehicle_number, truck_type, load_type
                 FROM vehicle_qr
                 WHERE vehicle_number = %s
                 ORDER BY generated_date DESC, daily_token DESC
