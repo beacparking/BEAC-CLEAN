@@ -283,19 +283,38 @@ def admin():
         for r in last_rows
     ]
 
-    # Optional search by vehicle number (all dates)
+    # Optional search by vehicle number OR token number (all dates)
     search_vehicle = request.args.get("search_vehicle")
     search_rows = []
+    search_mode = None
     if search_vehicle:
-        cur.execute(
-            """
-            SELECT daily_token, ticket_number, generated_date, amount_collected
-            FROM vehicle_qr
-            WHERE vehicle_number = %s
-            ORDER BY generated_date DESC, daily_token DESC
-            """,
-            (search_vehicle,),
-        )
+        try:
+            token_val = int(search_vehicle)
+        except ValueError:
+            token_val = None
+
+        if token_val is not None:
+            search_mode = "token"
+            cur.execute(
+                """
+                SELECT daily_token, ticket_number, generated_date, amount_collected, vehicle_number, truck_type, load_type
+                FROM vehicle_qr
+                WHERE daily_token = %s
+                ORDER BY generated_date DESC, daily_token DESC
+                """,
+                (token_val,),
+            )
+        else:
+            search_mode = "vehicle"
+            cur.execute(
+                """
+                SELECT daily_token, ticket_number, generated_date, amount_collected, vehicle_number, truck_type, load_type
+                FROM vehicle_qr
+                WHERE vehicle_number = %s
+                ORDER BY generated_date DESC, daily_token DESC
+                """,
+                (search_vehicle,),
+            )
         search_rows = cur.fetchall()
 
     conn.close()
@@ -307,6 +326,7 @@ def admin():
         default_date=today,
         search_vehicle=search_vehicle,
         search_rows=search_rows,
+        search_mode=search_mode,
         daily_counts={
             "total": total_today,
             "bhutanese": bhutanese_today,
