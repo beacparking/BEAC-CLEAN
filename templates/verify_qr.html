@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>QR Verification</title>
+    <style>
+        body {
+            background: #0b3d3b;
+            color: white;
+            font-family: Arial;
+            text-align: center;
+            padding-top: 80px;
+        }
+        .valid { color: #00ff99; font-size: 40px; }
+        .expired { color: red; font-size: 40px; }
+    </style>
+</head>
+<body>
+
+    {% if status == "VALID" %}
+        <div class="valid">✅ VALID</div>
+    {% else %}
+        <div class="expired">❌ EXPIRED</div>
+    {% endif %}
+
+    <p><strong>Vehicle Number:</strong> {{ vehicle }}</p>
+    <p><strong>Truck Type:</strong> {{ truck_type }}</p>
+    <p><strong>Load Type:</strong> {{ load_type }}</p>
+    <p><strong>Expires On:</strong> {{ expiry }}</p>
+
+</body>
+</html>

@@ -28,6 +28,8 @@ STATS_USERNAME = "620443"
 STATS_PASSWORD = "620443"
 MEMBERS_USERNAME = "member"
 MEMBERS_PASSWORD = "member"
+EXPORT_USERNAME = "ADD"
+EXPORT_PASSWORD = "ADD123"
 
 @app.route("/")
 def home():
@@ -71,6 +73,10 @@ def login():
         if username == MEMBERS_USERNAME and password == MEMBERS_PASSWORD:
             session["members_logged_in"] = True
             return redirect(url_for("members"))
+
+        if username == EXPORT_USERNAME and password == EXPORT_PASSWORD:
+            session["export_logged_in"] = True
+            return redirect(url_for("verify_export"))
 
         return render_template("login.html", error="Invalid credentials")
 
@@ -653,10 +659,85 @@ def stats_export():
 
 
 # ======================
-# VERIFY QR
+# VERIFY PAGE: CSV DOWNLOAD (ADD / ADD123)
+# ======================
+@app.route("/verify/export")
+def verify_export_csv():
+    if not session.get("export_logged_in"):
+        return redirect(url_for("verify_export"))
+    date_str = request.args.get("date")
+    bhutan = request.args.get("bhutan") == "1"
+    indian = request.args.get("indian") == "1"
+    if not date_str or (not bhutan and not indian):
+        return redirect(url_for("verify_export", error="Select a date and at least one vehicle type."))
+    try:
+        d = datetime.strptime(date_str, "%Y-%m-%d").date()
+    except ValueError:
+        return redirect(url_for("verify_export", error="Invalid date."))
+    # Indian: exclude the 30 hidden vehicles (amount 200). Bhutan: all.
+    conn = get_db()
+    cur = conn.cursor()
+    if bhutan and indian:
+        cur.execute("""
+            SELECT daily_token, vehicle_number, load_type, amount_collected
+            FROM vehicle_qr
+            WHERE generated_date = %s
+              AND (
+                truck_type = 'Bhutanese'
+                OR (truck_type = 'Indian' AND (amount_collected IS NULL OR amount_collected != 200))
+              )
+            ORDER BY truck_type, daily_token
+        """, (d,))
+    elif bhutan:
+        cur.execute("""
+            SELECT daily_token, vehicle_number, load_type, amount_collected
+            FROM vehicle_qr
+            WHERE generated_date = %s AND truck_type = 'Bhutanese'
+            ORDER BY daily_token
+        """, (d,))
+    else:
+        cur.execute("""
+            SELECT daily_token, vehicle_number, load_type, amount_collected
+            FROM vehicle_qr
+            WHERE generated_date = %s
+              AND truck_type = 'Indian'
+              AND (amount_collected IS NULL OR amount_collected != 200)
+            ORDER BY daily_token
+        """, (d,))
+    rows = cur.fetchall()
+    conn.close()
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["Token number", "Vehicle number", "Type of load", "Amount"])
+    for r in rows:
+        writer.writerow([str(x) if x is not None else "" for x in r])
+    return send_file(
+        io.BytesIO(output.getvalue().encode("utf-8-sig")),
+        mimetype="text/csv",
+        as_attachment=True,
+        download_name=f"vehicles_{d}.csv"
+    )
+
+
+@app.route("/verify", methods=["GET", "POST"])
+def verify_export():
+    if request.method == "POST":
+        username = request.form.get("username")
+        password = request.form.get("password")
+        if username == EXPORT_USERNAME and password == EXPORT_PASSWORD:
+            session["export_logged_in"] = True
+            return redirect(url_for("verify_export"))
+        return render_template("verify.html", login_error="Invalid credentials")
+    if not session.get("export_logged_in"):
+        return render_template("verify.html", login_error=request.args.get("error"))
+    return render_template("verify.html", logged_in=True, error=request.args.get("error"))
+
+
+# ======================
+# VERIFY QR (public scan by token id)
 # ======================
 @app.route("/verify/<int:token_id>")
-def verify(token_id):
+def verify_qr(token_id):
     conn = get_db()
     cur = conn.cursor()
 
@@ -669,7 +750,7 @@ def verify(token_id):
     conn.close()
 
     if not row:
-        return render_template("verify.html", status="INVALID")
+        return render_template("verify_qr.html", status="INVALID")
 
     vehicle, truck_type, load_type, amount_collected, expiry = row
     today = date.today()
@@ -677,7 +758,7 @@ def verify(token_id):
     status = "VALID" if today <= expiry else "EXPIRED"
 
     return render_template(
-        "verify.html",
+        "verify_qr.html",
         status=status,
         vehicle=vehicle,
         truck_type=truck_type,

@@ -1,31 +1,39 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>QR Verification</title>
-    <style>
-        body {
-            background: #0b3d3b;
-            color: white;
-            font-family: Arial;
-            text-align: center;
-            padding-top: 80px;
-        }
-        .valid { color: #00ff99; font-size: 40px; }
-        .expired { color: red; font-size: 40px; }
-    </style>
+    <meta charset="UTF-8">
+    <title>Download vehicle CSV</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
 </head>
 <body>
+<div class="page">
 
-    {% if status == "VALID" %}
-        <div class="valid">✅ VALID</div>
-    {% else %}
-        <div class="expired">❌ EXPIRED</div>
-    {% endif %}
+<h1>Download vehicle CSV</h1>
 
-    <p><strong>Vehicle Number:</strong> {{ vehicle }}</p>
-    <p><strong>Truck Type:</strong> {{ truck_type }}</p>
-    <p><strong>Load Type:</strong> {{ load_type }}</p>
-    <p><strong>Expires On:</strong> {{ expiry }}</p>
+{% if not logged_in %}
+    <form method="POST" class="qr-form">
+        <label>Username</label>
+        <input type="text" name="username" required autocomplete="username">
+        <label>Password</label>
+        <input type="password" name="password" required autocomplete="current-password">
+        {% if login_error %}<p class="error">{{ login_error }}</p>{% endif %}
+        <button type="submit">Login</button>
+    </form>
+{% else %}
+    <form method="GET" action="{{ url_for('verify_export_csv') }}" class="qr-form">
+        <label>Select date</label>
+        <input type="date" name="date" required>
+        <div class="checkbox-group">
+            <label><input type="checkbox" name="bhutan" value="1"> Bhutan vehicles</label>
+            <label><input type="checkbox" name="indian" value="1"> Indian vehicles</label>
+        </div>
+        {% if error %}<p class="error">{{ error }}</p>{% endif %}
+        <button type="submit">Download CSV</button>
+    </form>
+    <p class="verify-csv-note">CSV contains: Token number, Vehicle number, Type of load, Amount.</p>
+    <a href="/logout" class="logout">Logout</a>
+{% endif %}
 
+</div>
 </body>
 </html>
