@@ -237,14 +237,17 @@ def admin():
                     conn.commit()
 
                 except psycopg2.errors.UniqueViolation:
-                    # 🔒 DUPLICATE LOCK — reuse existing QR
+                    # Same vehicle + date already exists: update with new token and details
                     conn.rollback()
                     cur.execute("""
-                        SELECT id, daily_token, expires_date
-                        FROM vehicle_qr
+                        UPDATE vehicle_qr
+                        SET truck_type = %s, load_type = %s, ticket_number = %s,
+                            amount_collected = %s, daily_token = %s
                         WHERE vehicle_number = %s AND generated_date = %s
-                    """, (vehicle, generated_date))
+                        RETURNING id, daily_token, expires_date
+                    """, (truck_type, load_type, ticket_number, amount_collected, daily_token, vehicle, generated_date))
                     token_id, daily_token, expires_date = cur.fetchone()
+                    conn.commit()
 
                 conn.close()
 
@@ -685,10 +688,12 @@ def export_csv(rows, filename):
     writer.writerow(["Daily Token", "Vehicle", "Truck Type", "Load Type", "Ticket Number", "Amount Collected"])
 
     for r in rows:
-        writer.writerow(r[:6])
+        # Ensure each value is written as string so token numbers (e.g. 1) always show
+        row = r[:6]
+        writer.writerow([str(x) if x is not None else "" for x in row])
 
     return send_file(
-        io.BytesIO(output.getvalue().encode()),
+        io.BytesIO(output.getvalue().encode("utf-8-sig")),
         mimetype="text/csv",
         as_attachment=True,
         download_name=filename
