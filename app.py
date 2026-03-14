@@ -488,6 +488,23 @@ def members():
         (members_date,),
     )
     indian_200 = cur.fetchone()[0] or 0
+
+    # Amounts collected for selected date
+    cur.execute(
+        """
+        SELECT
+          COALESCE(SUM(amount_collected), 0),
+          COALESCE(SUM(CASE WHEN truck_type = 'Bhutanese' THEN amount_collected END), 0),
+          COALESCE(SUM(CASE WHEN truck_type = 'Indian' THEN amount_collected END), 0)
+        FROM vehicle_qr
+        WHERE generated_date = %s
+        """,
+        (members_date,),
+    )
+    amt_row = cur.fetchone()
+    amount_total = float(amt_row[0] or 0)
+    amount_bhutanese = float(amt_row[1] or 0)
+    amount_indian = float(amt_row[2] or 0)
     conn.close()
 
     # Target subtraction is up to 30 vehicles, but not more than Indian with amount 200
@@ -514,6 +531,9 @@ def members():
         bhutanese=bhutanese,
         indian=indian_display,
         indian_actual=indian_actual,
+        amount_total=amount_total,
+        amount_bhutanese=amount_bhutanese,
+        amount_indian=amount_indian,
     )
 
 
