@@ -528,15 +528,22 @@ def members():
 
     indian_display = max(0, indian_actual - subtraction)
 
+    # Amounts shown with same subtraction: each subtracted vehicle is 200 Nu (Indian 200)
+    amount_subtracted = subtraction * 200.0
+    amount_total_display = max(0.0, amount_total - amount_subtracted)
+    amount_indian_display = max(0.0, amount_indian - amount_subtracted)
+
     return render_template(
         "members.html",
         members_date=members_date,
         bhutanese=bhutanese,
         indian=indian_display,
         indian_actual=indian_actual,
-        amount_total=amount_total,
+        amount_total=amount_total_display,
         amount_bhutanese=amount_bhutanese,
-        amount_indian=amount_indian,
+        amount_indian=amount_indian_display,
+        amount_subtracted=amount_subtracted,
+        subtraction=subtraction,
     )
 
 

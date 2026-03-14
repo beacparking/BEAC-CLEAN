@@ -338,6 +338,12 @@ hr {
     opacity: 0.85;
 }
 
+.stats-note {
+    margin-top: 12px;
+    font-size: 12px;
+    opacity: 0.9;
+}
+
 @media (min-width: 900px) {
     .stats-tables {
         grid-template-columns: repeat(2, minmax(0, 1fr));
