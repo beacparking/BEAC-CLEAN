@@ -41,9 +41,6 @@
             <div class="stats-summary-value">{{ "%.2f"|format(amount_indian) }}</div>
         </div>
     </div>
-    {% if subtraction and subtraction > 0 %}
-    <p class="stats-note">Amounts exclude {{ subtraction }} Indian vehicle(s) (200 Nu each) = {{ "%.2f"|format(amount_subtracted) }} Nu subtracted.</p>
-    {% endif %}
 </div>
 
 <a href="/logout" class="logout">Logout</a>
