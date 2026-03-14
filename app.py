@@ -164,6 +164,12 @@ def admin():
             if not amount_collected:
                 error = "Amount is required to update."
             else:
+                try:
+                    if float(amount_collected) > 500:
+                        error = "Amount cannot exceed 500."
+                except (ValueError, TypeError):
+                    error = "Amount must be a number."
+            if not error and record_id:
                 conn = get_db()
                 cur = conn.cursor()
                 cur.execute(
@@ -203,6 +209,13 @@ def admin():
                 except ValueError:
                     error = "Token number must be a number"
                     daily_token = None
+
+            if not error:
+                try:
+                    if float(amount_collected) > 500:
+                        error = "Amount cannot exceed 500."
+                except (ValueError, TypeError):
+                    error = "Amount must be a number."
 
             if not error:
                 generated_date = datetime.strptime(selected_date, "%Y-%m-%d").date()
