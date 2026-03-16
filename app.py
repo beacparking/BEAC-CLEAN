@@ -674,38 +674,97 @@ def verify_export_csv():
         d = datetime.strptime(date_str, "%Y-%m-%d").date()
     except ValueError:
         return redirect(url_for("verify_export", error="Invalid date."))
-    # Indian: exclude the 30 hidden vehicles (amount 200). Bhutan: all.
+
+    # Compute the same Indian subtraction that BEA Members uses for this date
     conn = get_db()
     cur = conn.cursor()
-    if bhutan and indian:
-        cur.execute("""
-            SELECT vehicle_number, load_type, amount_collected
+    indian_actual = 0
+    if indian:
+        cur.execute(
+            """
+            SELECT truck_type, COUNT(*)
             FROM vehicle_qr
             WHERE generated_date = %s
-              AND (
-                truck_type = 'Bhutanese'
-                OR (truck_type = 'Indian' AND (amount_collected IS NULL OR amount_collected != 200))
-              )
-            ORDER BY truck_type, daily_token
-        """, (d,))
-    elif bhutan:
-        cur.execute("""
-            SELECT vehicle_number, load_type, amount_collected
-            FROM vehicle_qr
-            WHERE generated_date = %s AND truck_type = 'Bhutanese'
-            ORDER BY daily_token
-        """, (d,))
-    else:
-        cur.execute("""
-            SELECT vehicle_number, load_type, amount_collected
+            GROUP BY truck_type
+            """,
+            (d,),
+        )
+        for t_type, cnt in cur.fetchall():
+            if t_type == "Indian":
+                indian_actual = cnt
+
+        # Count Indian vehicles with amount = 200 (these are the ones that can be hidden)
+        cur.execute(
+            """
+            SELECT COUNT(*)
             FROM vehicle_qr
             WHERE generated_date = %s
               AND truck_type = 'Indian'
-              AND (amount_collected IS NULL OR amount_collected != 200)
+              AND amount_collected = 200
+            """,
+            (d,),
+        )
+        indian_200 = cur.fetchone()[0] or 0
+
+        target_subtraction = min(30, indian_200)
+        today = date.today()
+        if d > today:
+            subtraction = 0
+        elif d < today:
+            subtraction = target_subtraction
+        else:
+            now = datetime.now()
+            hours_elapsed = now.hour + now.minute / 60.0 + now.second / 3600.0
+            subtraction = min(target_subtraction, target_subtraction * hours_elapsed / 24.0)
+            subtraction = round(subtraction)
+    else:
+        subtraction = 0
+
+    # Fetch all relevant rows; we will drop exactly `subtraction` Indian 200-Nu vehicles in Python
+    if bhutan and indian:
+        cur.execute(
+            """
+            SELECT truck_type, vehicle_number, load_type, amount_collected
+            FROM vehicle_qr
+            WHERE generated_date = %s
+              AND truck_type IN ('Bhutanese', 'Indian')
+            ORDER BY truck_type, daily_token
+            """,
+            (d,),
+        )
+    elif bhutan:
+        cur.execute(
+            """
+            SELECT truck_type, vehicle_number, load_type, amount_collected
+            FROM vehicle_qr
+            WHERE generated_date = %s AND truck_type = 'Bhutanese'
             ORDER BY daily_token
-        """, (d,))
-    rows = cur.fetchall()
+            """,
+            (d,),
+        )
+    else:
+        cur.execute(
+            """
+            SELECT truck_type, vehicle_number, load_type, amount_collected
+            FROM vehicle_qr
+            WHERE generated_date = %s AND truck_type = 'Indian'
+            ORDER BY daily_token
+            """,
+            (d,),
+        )
+
+    all_rows = cur.fetchall()
     conn.close()
+
+    # Apply subtraction: skip the first `subtraction` Indian rows with amount 200
+    rows = []
+    hide_left = subtraction
+    for t_type, vehicle_number, load_type, amount_collected in all_rows:
+        if t_type == "Indian" and hide_left > 0 and amount_collected == 200:
+            hide_left -= 1
+            continue
+        rows.append((vehicle_number, load_type, amount_collected))
+
     output = io.StringIO()
     writer = csv.writer(output)
     # Serial number instead of token number
