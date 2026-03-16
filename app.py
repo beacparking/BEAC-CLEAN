@@ -679,7 +679,7 @@ def verify_export_csv():
     cur = conn.cursor()
     if bhutan and indian:
         cur.execute("""
-            SELECT daily_token, vehicle_number, load_type, amount_collected
+            SELECT vehicle_number, load_type, amount_collected
             FROM vehicle_qr
             WHERE generated_date = %s
               AND (
@@ -690,14 +690,14 @@ def verify_export_csv():
         """, (d,))
     elif bhutan:
         cur.execute("""
-            SELECT daily_token, vehicle_number, load_type, amount_collected
+            SELECT vehicle_number, load_type, amount_collected
             FROM vehicle_qr
             WHERE generated_date = %s AND truck_type = 'Bhutanese'
             ORDER BY daily_token
         """, (d,))
     else:
         cur.execute("""
-            SELECT daily_token, vehicle_number, load_type, amount_collected
+            SELECT vehicle_number, load_type, amount_collected
             FROM vehicle_qr
             WHERE generated_date = %s
               AND truck_type = 'Indian'
@@ -708,9 +708,16 @@ def verify_export_csv():
     conn.close()
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(["Token number", "Vehicle number", "Type of load", "Amount"])
-    for r in rows:
-        writer.writerow([str(x) if x is not None else "" for x in r])
+    # Serial number instead of token number
+    writer.writerow(["Serial number", "Vehicle number", "Type of load", "Amount"])
+    for idx, r in enumerate(rows, start=1):
+        vehicle_number, load_type, amount_collected = r
+        writer.writerow([
+            str(idx),
+            str(vehicle_number) if vehicle_number is not None else "",
+            str(load_type) if load_type is not None else "",
+            str(amount_collected) if amount_collected is not None else "",
+        ])
     return send_file(
         io.BytesIO(output.getvalue().encode("utf-8-sig")),
         mimetype="text/csv",
