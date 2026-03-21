@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title>BEA Parking Token System</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
 </head>
@@ -106,6 +107,7 @@
 {% if last_entries %}
 <div class="qr-box" style="margin-top: 12px;">
     <p><b>Last 3 vehicles (today)</b></p>
+    <div class="table-responsive">
     <table class="stats-table">
         <thead>
             <tr>
@@ -134,6 +136,7 @@
         {% endfor %}
         </tbody>
     </table>
+    </div>
 </div>
 {% endif %}
 
@@ -150,6 +153,7 @@
         <hr style="margin: 16px 0;">
         <p><b>Search result for:</b> {{ search_vehicle }}</p>
         {% if search_rows %}
+            <div class="table-responsive">
             <table class="stats-table">
                 <thead>
                     <tr>
@@ -186,6 +190,7 @@
                 {% endfor %}
                 </tbody>
             </table>
+            </div>
         {% else %}
             <p class="unpaid-empty">No records found for this vehicle.</p>
         {% endif %}

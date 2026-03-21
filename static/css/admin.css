@@ -1,6 +1,18 @@
+html {
+    box-sizing: border-box;
+    -webkit-text-size-adjust: 100%;
+}
+
+*,
+*::before,
+*::after {
+    box-sizing: inherit;
+}
+
 body {
     margin: 0;
     min-height: 100vh;
+    min-height: 100dvh;
     font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     color: #e5f4f0;
     background: radial-gradient(circle at top, #0f766e 0, #022c22 45%, #020617 100%);
@@ -295,6 +307,14 @@ hr {
     margin-top: 8px;
 }
 
+/* Horizontal scroll for wide tables (admin search / last entries) */
+.table-responsive {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    margin-top: 8px;
+}
+
 .stats-table {
     width: 100%;
     border-collapse: collapse;
@@ -402,5 +422,164 @@ hr {
 @media (min-width: 900px) {
     .unpaid-section {
         grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+/* ---------- Responsive: tablets & phones ---------- */
+@media (max-width: 900px) {
+    .app-header {
+        flex-wrap: wrap;
+        gap: 10px;
+        padding: 10px 14px;
+        align-items: flex-start;
+    }
+
+    .app-header-right {
+        margin-left: auto;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+    }
+
+    .main-nav {
+        order: 3;
+        width: 100%;
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+
+    .main-nav .nav-link {
+        flex: 1 1 auto;
+        min-height: 44px;
+        text-align: center;
+    }
+
+    .page {
+        margin: 12px;
+        padding: 16px 14px 28px;
+        max-width: none;
+        width: calc(100% - 24px);
+        border-radius: 12px;
+    }
+
+    h1 {
+        font-size: 20px;
+        line-height: 1.25;
+    }
+
+    h2 {
+        font-size: 16px;
+        margin-top: 24px;
+    }
+
+    .export-box form {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .export-box form > * {
+        width: 100%;
+        max-width: 100%;
+    }
+}
+
+@media (max-width: 640px) {
+    .qr-form {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .qr-form label {
+        width: 100%;
+    }
+
+    .qr-form input,
+    .qr-form select {
+        width: 100%;
+        max-width: 100%;
+        min-width: 0;
+    }
+
+    .qr-form button {
+        width: 100%;
+        min-height: 48px;
+    }
+
+    /* Stat cards: 2-column grid on small phones, stacks cleanly */
+    .stats-summary {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+    }
+
+    .stats-summary > div {
+        flex: none;
+        min-width: 0;
+    }
+
+    .stats-summary-value {
+        font-size: 18px;
+    }
+
+    /* Scroll wide tables instead of squashing */
+    .stats-tables > div {
+        min-width: 0;
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+        padding-bottom: 4px;
+    }
+
+    .stats-table {
+        font-size: 13px;
+        min-width: 280px;
+    }
+
+    .stats-table th,
+    .stats-table td {
+        padding: 8px 8px;
+        white-space: nowrap;
+    }
+
+    .stats-download {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .stats-download .logout {
+        text-align: center;
+        justify-content: center;
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .checkbox-group {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
+    }
+
+    .checkbox-group label {
+        min-height: 44px;
+    }
+
+    .logout {
+        min-height: 44px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+}
+
+@media (max-width: 380px) {
+    .stats-summary {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 640px) {
+    .table-responsive .stats-table {
+        min-width: 520px;
+        font-size: 12px;
     }
 }
