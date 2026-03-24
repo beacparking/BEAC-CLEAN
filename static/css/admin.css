@@ -438,36 +438,59 @@ hr {
     background: rgba(30, 41, 59, 0.65);
 }
 
-.stats-download {
-    margin-top: 18px;
+/* Stats page: CSV download nav (uses selected date via JS) */
+.stats-csv-nav {
     display: flex;
     flex-wrap: wrap;
-    gap: 12px;
     align-items: center;
-    font-size: 14px;
+    gap: 6px 4px;
+    padding: 14px 0 4px;
+    margin-top: 4px;
+    border-top: 1px solid var(--dash-border-subtle);
 }
 
-.stats-download span {
+.stats-csv-nav__label {
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
     color: var(--dash-text-muted);
     width: 100%;
-    margin-bottom: 4px;
+    margin-bottom: 6px;
 }
 
-.stats-download a.logout {
-    color: var(--dash-accent-blue);
-    border: none;
-    background: transparent;
-    padding: 6px 0;
+.stats-csv-nav__sep {
+    color: var(--dash-text-muted);
+    opacity: 0.5;
+    user-select: none;
+}
+
+.stats-csv-link {
+    font-size: 14px;
     font-weight: 500;
-    border-radius: 0;
-    display: inline;
-    min-height: 0;
+    color: var(--dash-accent-blue);
+    text-decoration: none;
+    padding: 8px 10px;
+    border-radius: 8px;
+    transition: background 0.15s ease, color 0.15s ease;
 }
 
-.stats-download a.logout:hover {
+.stats-csv-link:hover {
     text-decoration: underline;
-    background: transparent;
-    border-color: transparent;
+    background: var(--dash-accent-blue-dim);
+}
+
+@media (min-width: 640px) {
+    .stats-csv-nav {
+        gap: 8px 6px;
+        padding-top: 16px;
+    }
+
+    .stats-csv-nav__label {
+        width: auto;
+        margin-bottom: 0;
+        margin-right: 10px;
+    }
 }
 
 .stats-note {
@@ -538,13 +561,6 @@ hr {
 }
 
 /* ---------- Responsive: tablets & phones ---------- */
-@media (min-width: 640px) {
-    .stats-download span {
-        width: auto;
-        margin-bottom: 0;
-    }
-}
-
 @media (max-width: 900px) {
     .app-header {
         flex-wrap: wrap;
@@ -662,21 +678,10 @@ hr {
         white-space: nowrap;
     }
 
-    .stats-download {
-        flex-direction: column;
-        align-items: stretch;
-    }
-
-    .stats-download .logout {
-        color: var(--dash-accent-blue);
-        border: none;
-        background: transparent;
-        text-align: left;
-        justify-content: flex-start;
+    .stats-csv-link {
         min-height: 44px;
-        display: flex;
+        display: inline-flex;
         align-items: center;
-        padding: 6px 0;
     }
 
     .checkbox-group {

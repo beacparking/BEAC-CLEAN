@@ -25,11 +25,22 @@
 <p class="page-lead">Breakdown by load type and CSV downloads for the selected date.</p>
 
 <div class="dash-card">
-<form method="GET" class="qr-form">
-    <label>Select date</label>
-    <input type="date" name="date" value="{{ stats_date.isoformat() }}" required>
+<form method="GET" class="qr-form" id="stats-date-form">
+    <label for="stats-date-input">Select date</label>
+    <input type="date" name="date" id="stats-date-input" value="{{ stats_date.isoformat() }}" required>
     <button type="submit">Show Stats</button>
 </form>
+
+<nav class="stats-csv-nav" aria-label="Download CSV for selected date">
+    <span class="stats-csv-nav__label">Download CSV</span>
+    <a href="#" class="stats-csv-link" data-csv="bhutanese">Bhutanese vehicles</a>
+    <span class="stats-csv-nav__sep" aria-hidden="true">·</span>
+    <a href="#" class="stats-csv-link" data-csv="indian">Indian vehicles</a>
+    <span class="stats-csv-nav__sep" aria-hidden="true">·</span>
+    <a href="#" class="stats-csv-link" data-csv="summary">Summary (totals)</a>
+    <span class="stats-csv-nav__sep" aria-hidden="true">·</span>
+    <a href="#" class="stats-csv-link" data-csv="hidden150">150 (hidden Indian)</a>
+</nav>
 
 {% if stats %}
 <div class="qr-box">
@@ -139,18 +150,33 @@
             </table>
         </div>
     </div>
-
-    <div class="stats-download">
-        <span>Download CSV:</span>
-        <a href="{{ url_for('stats_export', date=stats_date.isoformat(), truck_type='Bhutanese') }}" class="logout">Bhutanese vehicles</a>
-        <a href="{{ url_for('stats_export', date=stats_date.isoformat(), truck_type='Indian') }}" class="logout">Indian vehicles</a>
-        <a href="{{ url_for('stats_export', date=stats_date.isoformat(), summary='1') }}" class="logout">Summary (totals)</a>
-        <a href="{{ url_for('stats_export', date=stats_date.isoformat(), only_150='1') }}" class="logout">150 (hidden Indian)</a>
-    </div>
 </div>
 {% endif %}
 </div>
 
 </div>
+<script>
+(function () {
+    var base = {{ url_for('stats_export') | tojson }};
+    var input = document.getElementById('stats-date-input');
+    document.querySelectorAll('.stats-csv-link').forEach(function (el) {
+        el.addEventListener('click', function (e) {
+            e.preventDefault();
+            if (!input || !input.value) {
+                alert('Please select a date first.');
+                return;
+            }
+            var d = encodeURIComponent(input.value);
+            var kind = el.getAttribute('data-csv');
+            var url = base + '?date=' + d;
+            if (kind === 'bhutanese') url += '&truck_type=Bhutanese';
+            else if (kind === 'indian') url += '&truck_type=Indian';
+            else if (kind === 'summary') url += '&summary=1';
+            else if (kind === 'hidden150') url += '&only_150=1';
+            window.location.href = url;
+        });
+    });
+})();
+</script>
 </body>
 </html>
