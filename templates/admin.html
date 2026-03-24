@@ -25,15 +25,16 @@
     <div class="app-header-right">
         <span class="app-user-label">Logged in as</span>
         <span class="app-user-name">Admin</span>
-        <a href="/logout" class="logout small">Logout</a>
+        <a href="/logout" class="header-link">Log out</a>
     </div>
 </header>
 
 <div class="page">
 
 <h1>Dashboard</h1>
+<p class="page-lead">Generate parking tokens, export CSV data, and review today’s truck counts.</p>
 
-<div id="token-section" class="dashboard-section">
+<div id="token-section" class="dashboard-section dash-card">
 <form method="POST" class="qr-form" id="token-form">
     <input type="hidden" name="record_id" id="record_id">
     <div class="field">
@@ -198,7 +199,7 @@
 </div>
 </div>  <!-- /token-section -->
 
-<div id="csv-section" class="dashboard-section hidden">
+<div id="csv-section" class="dashboard-section dash-card hidden">
 <h2>Export CSV</h2>
 
 <div class="export-box">
@@ -238,7 +239,7 @@
 <hr class="section-divider">
 </div>  <!-- /csv-section -->
 
-<div id="report-section" class="dashboard-section hidden">
+<div id="report-section" class="dashboard-section dash-card hidden">
 <h2>Daily report (today)</h2>
 
 {% if daily_counts %}

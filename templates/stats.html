@@ -7,10 +7,24 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
 </head>
 <body>
+
+<header class="app-header app-header--simple">
+    <div class="app-header-left">
+        <div class="app-logo-circle">B</div>
+        <div class="app-title-group">
+            <span class="app-title">BEA Parking</span>
+            <span class="app-subtitle">Statistics</span>
+        </div>
+    </div>
+    <a href="/logout" class="header-link">Log out</a>
+</header>
+
 <div class="page">
 
-<h1>Vehicle Statistics</h1>
+<h1>Vehicle statistics</h1>
+<p class="page-lead">Breakdown by load type and CSV downloads for the selected date.</p>
 
+<div class="dash-card">
 <form method="GET" class="qr-form">
     <label>Select date</label>
     <input type="date" name="date" value="{{ stats_date.isoformat() }}" required>
@@ -135,8 +149,7 @@
     </div>
 </div>
 {% endif %}
-
-<a href="/logout" class="logout">Logout</a>
+</div>
 
 </div>
 </body>

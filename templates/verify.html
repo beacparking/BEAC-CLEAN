@@ -7,11 +7,29 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
 </head>
 <body>
+
+<header class="app-header app-header--simple">
+    <div class="app-header-left">
+        <div class="app-logo-circle">B</div>
+        <div class="app-title-group">
+            <span class="app-title">BEA Parking</span>
+            <span class="app-subtitle">Verify / CSV export</span>
+        </div>
+    </div>
+    {% if logged_in %}
+    <a href="/logout" class="header-link">Log out</a>
+    {% else %}
+    <a href="{{ url_for('login') }}" class="header-link">Main login</a>
+    {% endif %}
+</header>
+
 <div class="page">
 
 <h1>Download vehicle CSV</h1>
+<p class="page-lead">Sign in to export serial, vehicle, load type, and amount for Bhutan and/or Indian vehicles.</p>
 
 {% if not logged_in %}
+<div class="dash-card">
     <form method="POST" class="qr-form">
         <label>Username</label>
         <input type="text" name="username" required autocomplete="username">
@@ -20,7 +38,9 @@
         {% if login_error %}<p class="error">{{ login_error }}</p>{% endif %}
         <button type="submit">Login</button>
     </form>
+</div>
 {% else %}
+<div class="dash-card">
     <form method="GET" action="{{ url_for('verify_export_csv') }}" class="qr-form">
         <label>Select date</label>
         <input type="date" name="date" required>
@@ -32,7 +52,7 @@
         <button type="submit">Download CSV</button>
     </form>
     <p class="verify-csv-note">CSV contains: Serial number, Vehicle number, Type of load, Amount.</p>
-    <a href="/logout" class="logout">Logout</a>
+</div>
 {% endif %}
 
 </div>
