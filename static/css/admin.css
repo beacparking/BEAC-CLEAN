@@ -1,3 +1,18 @@
+:root {
+    /* Dashboard palette (slate / navy, similar to modern admin UIs) */
+    --dash-bg: #0f172a;
+    --dash-bg-deep: #020617;
+    --dash-surface: #1e293b;
+    --dash-surface-hover: #334155;
+    --dash-border: rgba(51, 65, 85, 0.9);
+    --dash-border-subtle: rgba(148, 163, 184, 0.18);
+    --dash-text: #f8fafc;
+    --dash-text-muted: #94a3b8;
+    --dash-accent-blue: #3b82f6;
+    --dash-accent-green: #22c55e;
+    --dash-accent-green-dark: #16a34a;
+}
+
 html {
     box-sizing: border-box;
     -webkit-text-size-adjust: 100%;
@@ -14,8 +29,10 @@ body {
     min-height: 100vh;
     min-height: 100dvh;
     font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    color: #e5f4f0;
-    background: radial-gradient(circle at top, #0f766e 0, #022c22 45%, #020617 100%);
+    color: var(--dash-text);
+    background: var(--dash-bg);
+    background-image: radial-gradient(ellipse 120% 80% at 50% -20%, #1e293b 0%, transparent 55%),
+        linear-gradient(180deg, var(--dash-bg) 0%, var(--dash-bg-deep) 100%);
 }
 
 .app-header {
@@ -23,8 +40,8 @@ body {
     align-items: center;
     justify-content: space-between;
     padding: 10px 28px;
-    background: rgba(15, 23, 42, 0.98);
-    border-bottom: 1px solid rgba(31, 41, 55, 0.9);
+    background: var(--dash-bg);
+    border-bottom: 1px solid var(--dash-border-subtle);
 }
 
 .app-header-left {
@@ -58,7 +75,7 @@ body {
 
 .app-subtitle {
     font-size: 12px;
-    opacity: 0.7;
+    color: var(--dash-text-muted);
 }
 
 .app-header-right {
@@ -69,7 +86,7 @@ body {
 }
 
 .app-user-label {
-    opacity: 0.7;
+    color: var(--dash-text-muted);
 }
 
 .app-user-name {
@@ -85,10 +102,10 @@ body {
     max-width: 1100px;
     margin: 32px auto 40px;
     padding: 24px 28px 36px;
-    background: rgba(15, 23, 42, 0.9);
+    background: var(--dash-surface);
     border-radius: 16px;
-    box-shadow: 0 22px 45px rgba(0, 0, 0, 0.55);
-    border: 1px solid rgba(148, 163, 184, 0.25);
+    box-shadow: 0 24px 48px rgba(0, 0, 0, 0.45);
+    border: 1px solid var(--dash-border-subtle);
 }
 
 h1 {
@@ -102,6 +119,7 @@ h2 {
     margin-top: 32px;
     margin-bottom: 12px;
     font-size: 18px;
+    color: var(--dash-text);
 }
 
 .qr-form {
@@ -123,16 +141,16 @@ h2 {
     font-size: 12px;
     text-transform: uppercase;
     letter-spacing: 0.06em;
-    color: #a5b4fc;
+    color: var(--dash-text-muted);
 }
 
 .qr-form input,
 .qr-form select {
     padding: 10px 12px;
     border-radius: 8px;
-    border: 1px solid rgba(148, 163, 184, 0.5);
-    background: #020617;
-    color: #e5f4f0;
+    border: 1px solid var(--dash-border-subtle);
+    background: var(--dash-bg-deep);
+    color: var(--dash-text);
     min-width: 150px;
 }
 
@@ -144,7 +162,7 @@ h2 {
     padding: 11px 18px;
     border-radius: 999px;
     border: none;
-    background-color: #22c55e;
+    background-color: var(--dash-accent-green);
     color: #022c22;
     font-weight: 600;
     cursor: pointer;
@@ -152,15 +170,16 @@ h2 {
 }
 
 .qr-form button:hover {
-    background-color: #16a34a;
+    background-color: var(--dash-accent-green-dark);
 }
 
 .qr-box {
     margin-top: 16px;
     padding: 12px 14px;
     border-radius: 12px;
-    background: linear-gradient(135deg, rgba(22, 163, 74, 0.16), rgba(8, 47, 73, 0.9));
-    border: 1px solid rgba(34, 197, 94, 0.7);
+    background: var(--dash-bg);
+    border: 1px solid var(--dash-border-subtle);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
 }
 
 .qr-box p {
@@ -170,7 +189,7 @@ h2 {
 hr {
     margin: 32px 0 24px;
     border: 0;
-    border-top: 1px solid rgba(148, 163, 184, 0.35);
+    border-top: 1px solid var(--dash-border-subtle);
 }
 
 .export-box {
@@ -185,18 +204,18 @@ hr {
     align-items: flex-end;
     gap: 10px;
     padding: 10px 12px;
-    background: #020617;
+    background: var(--dash-bg-deep);
     border-radius: 10px;
-    border: 1px solid rgba(30, 64, 175, 0.5);
+    border: 1px solid var(--dash-border-subtle);
 }
 
 .export-box input,
 .export-box select {
     padding: 8px 10px;
     border-radius: 8px;
-    border: 1px solid rgba(148, 163, 184, 0.5);
-    background: #020617;
-    color: #e5f4f0;
+    border: 1px solid var(--dash-border-subtle);
+    background: var(--dash-bg);
+    color: var(--dash-text);
 }
 
 .export-box button {
@@ -223,14 +242,15 @@ hr {
     display: inline-block;
     padding: 8px 18px;
     border-radius: 999px;
-    border: 1px solid rgba(148, 163, 184, 0.7);
-    color: #e5f4f0;
+    border: 1px solid var(--dash-border-subtle);
+    color: var(--dash-text);
     text-decoration: none;
     font-size: 14px;
 }
 
 .logout:hover {
-    background-color: rgba(148, 163, 184, 0.16);
+    background-color: rgba(148, 163, 184, 0.12);
+    border-color: rgba(148, 163, 184, 0.35);
 }
 
 .logout.small {
@@ -243,15 +263,15 @@ hr {
     border-radius: 999px;
     border: none;
     background: transparent;
-    color: #9ca3af;
+    color: var(--dash-text-muted);
     font-size: 13px;
     font-weight: 500;
     cursor: pointer;
 }
 
 .main-nav .nav-link.active {
-    background: rgba(31, 41, 55, 0.9);
-    color: #e5f4f0;
+    background: var(--dash-surface-hover);
+    color: var(--dash-text);
 }
 
 .dashboard-section {
@@ -283,15 +303,15 @@ hr {
     flex: 1 1 120px;
     padding: 8px 10px;
     border-radius: 10px;
-    background: rgba(15, 23, 42, 0.85);
-    border: 1px solid rgba(34, 197, 94, 0.5);
+    background: var(--dash-bg);
+    border: 1px solid var(--dash-border-subtle);
 }
 
 .stats-summary-label {
     font-size: 12px;
     text-transform: uppercase;
     letter-spacing: 0.06em;
-    color: #a5b4fc;
+    color: var(--dash-text-muted);
 }
 
 .stats-summary-value {
@@ -319,7 +339,7 @@ hr {
     width: 100%;
     border-collapse: collapse;
     font-size: 14px;
-    background: rgba(15, 23, 42, 0.95);
+    background: var(--dash-bg-deep);
     border-radius: 10px;
     overflow: hidden;
 }
@@ -327,22 +347,24 @@ hr {
 .stats-table th,
 .stats-table td {
     padding: 8px 10px;
-    border-bottom: 1px solid rgba(30, 64, 175, 0.4);
+    border-bottom: 1px solid var(--dash-border-subtle);
 }
 
 .stats-table th {
-    background: rgba(15, 118, 110, 0.9);
+    background: var(--dash-surface-hover);
     text-align: left;
     font-weight: 600;
+    color: var(--dash-text);
 }
 
 .stats-table tr:nth-child(even) td {
-    background: rgba(15, 23, 42, 0.9);
+    background: rgba(15, 23, 42, 0.55);
 }
 
 .stats-total-row td {
     font-weight: 600;
-    border-top: 1px solid rgba(34, 197, 94, 0.7);
+    border-top: 1px solid var(--dash-border-subtle);
+    background: rgba(30, 41, 59, 0.65);
 }
 
 .stats-download {
@@ -355,7 +377,7 @@ hr {
 }
 
 .stats-download span {
-    opacity: 0.85;
+    color: var(--dash-text-muted);
 }
 
 .stats-note {
@@ -399,7 +421,7 @@ hr {
     font-size: 14px;
     text-transform: uppercase;
     letter-spacing: 0.08em;
-    color: #a5b4fc;
+    color: var(--dash-text-muted);
 }
 
 .unpaid-list {
