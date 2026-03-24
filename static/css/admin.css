@@ -391,6 +391,59 @@ hr {
     font-weight: 600;
 }
 
+/* BEA Members: Bhutanese + Indian = Total */
+.members-amount-equation {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: stretch;
+    justify-content: center;
+    gap: 10px 8px;
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid var(--dash-border-subtle);
+}
+
+.members-amount-card {
+    flex: 1 1 140px;
+    min-width: 0;
+    padding: 14px 16px;
+    border-radius: 10px;
+    background: var(--dash-bg-deep);
+    border: 1px solid var(--dash-border-subtle);
+}
+
+.members-amount-card--total {
+    border-color: rgba(59, 130, 246, 0.35);
+    box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.12);
+}
+
+.members-amount-op {
+    flex: 0 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    align-self: center;
+    min-width: 28px;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--dash-text-muted);
+    line-height: 1;
+    user-select: none;
+}
+
+@media (max-width: 520px) {
+    .members-amount-equation {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .members-amount-op {
+        align-self: center;
+        padding: 4px 0;
+        font-size: 20px;
+    }
+}
+
 .stats-tables {
     display: grid;
     grid-template-columns: 1fr;

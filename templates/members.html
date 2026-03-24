@@ -42,18 +42,20 @@
             <div class="stats-summary-value">{{ indian }}</div>
         </div>
     </div>
-    <div class="stats-summary" style="margin-top: 16px;">
-        <div>
-            <div class="stats-summary-label">Total amount collected (Nu)</div>
-            <div class="stats-summary-value">{{ "%.2f"|format(amount_total) }}</div>
-        </div>
-        <div>
+    <div class="members-amount-equation" role="group" aria-label="Amount breakdown">
+        <div class="members-amount-card">
             <div class="stats-summary-label">Amount from Bhutanese (Nu)</div>
             <div class="stats-summary-value">{{ "%.2f"|format(amount_bhutanese) }}</div>
         </div>
-        <div>
+        <span class="members-amount-op" aria-hidden="true">+</span>
+        <div class="members-amount-card">
             <div class="stats-summary-label">Amount from Indian (Nu)</div>
             <div class="stats-summary-value">{{ "%.2f"|format(amount_indian) }}</div>
+        </div>
+        <span class="members-amount-op" aria-hidden="true">=</span>
+        <div class="members-amount-card members-amount-card--total">
+            <div class="stats-summary-label">Total amount collected (Nu)</div>
+            <div class="stats-summary-value">{{ "%.2f"|format(amount_total) }}</div>
         </div>
     </div>
 </div>
