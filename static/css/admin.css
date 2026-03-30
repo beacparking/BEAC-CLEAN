@@ -1,17 +1,19 @@
 :root {
-    /* Dashboard palette (slate / navy, similar to modern admin UIs) */
-    --dash-bg: #0f172a;
-    --dash-bg-deep: #020617;
-    --dash-surface: #1e293b;
-    --dash-surface-hover: #334155;
-    --dash-border: rgba(51, 65, 85, 0.9);
-    --dash-border-subtle: rgba(148, 163, 184, 0.18);
-    --dash-text: #f8fafc;
-    --dash-text-muted: #94a3b8;
-    --dash-accent-blue: #3b82f6;
-    --dash-accent-blue-dim: rgba(59, 130, 246, 0.14);
-    --dash-accent-green: #22c55e;
-    --dash-accent-green-dark: #16a34a;
+    /* Light SaaS dashboard (white cards, blue accent, soft shadows) */
+    --dash-bg: #e8f1fc;
+    --dash-bg-deep: #f1f5f9;
+    --dash-surface: #ffffff;
+    --dash-surface-hover: #eff6ff;
+    --dash-border: #e2e8f0;
+    --dash-border-subtle: #eef2f6;
+    --dash-text: #1a1a1a;
+    --dash-text-muted: #8e8e8e;
+    --dash-accent-blue: #1877f2;
+    --dash-accent-blue-hover: #166fe5;
+    --dash-accent-blue-dim: rgba(24, 119, 242, 0.12);
+    --dash-accent-yellow: #f9d423;
+    --dash-shadow: 0 4px 24px rgba(24, 119, 242, 0.07), 0 2px 12px rgba(0, 0, 0, 0.04);
+    --dash-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
 }
 
 html {
@@ -29,11 +31,9 @@ body {
     margin: 0;
     min-height: 100vh;
     min-height: 100dvh;
-    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", "Inter", sans-serif;
     color: var(--dash-text);
-    background: var(--dash-bg);
-    background-image: radial-gradient(ellipse 120% 80% at 50% -20%, #1e293b 0%, transparent 55%),
-        linear-gradient(180deg, var(--dash-bg) 0%, var(--dash-bg-deep) 100%);
+    background: linear-gradient(165deg, #d9e9fc 0%, #eef4fc 45%, #f8fbff 100%);
 }
 
 .app-header {
@@ -43,8 +43,8 @@ body {
     gap: 16px;
     padding: 14px 24px;
     background: var(--dash-surface);
-    border-bottom: 1px solid var(--dash-border-subtle);
-    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.15);
+    border-bottom: 1px solid var(--dash-border);
+    box-shadow: var(--dash-shadow-sm);
 }
 
 .app-header--simple {
@@ -65,7 +65,8 @@ body {
     flex-shrink: 0;
     border-radius: 50%;
     display: block;
-    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25);
+    box-shadow: 0 2px 12px rgba(24, 119, 242, 0.15);
+    border: 2px solid #fff;
 }
 
 .app-title-group {
@@ -76,6 +77,7 @@ body {
 .app-title {
     font-size: 15px;
     font-weight: 600;
+    color: var(--dash-text);
 }
 
 .app-subtitle {
@@ -96,6 +98,7 @@ body {
 
 .app-user-name {
     font-weight: 600;
+    color: var(--dash-text);
 }
 
 .main-nav {
@@ -130,14 +133,14 @@ h1 {
     max-width: 640px;
 }
 
-/* Card panels (like reference dashboard tiles) */
+/* Card panels (SaaS-style white tiles) */
 .dash-card {
     background: var(--dash-surface);
-    border-radius: 12px;
+    border-radius: 20px;
     border: 1px solid var(--dash-border-subtle);
     padding: 22px 24px;
     margin-bottom: 20px;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18);
+    box-shadow: var(--dash-shadow);
 }
 
 .dashboard-section.dash-card {
@@ -168,6 +171,7 @@ h1 {
 
 .header-link:hover {
     text-decoration: underline;
+    color: var(--dash-accent-blue-hover);
 }
 
 h2 {
@@ -201,40 +205,41 @@ h2 {
 
 .qr-form input,
 .qr-form select {
-    padding: 10px 12px;
-    border-radius: 8px;
-    border: 1px solid var(--dash-border-subtle);
-    background: var(--dash-bg-deep);
+    padding: 12px 14px;
+    border-radius: 12px;
+    border: 1px solid var(--dash-border);
+    background: var(--dash-surface);
     color: var(--dash-text);
     min-width: 150px;
 }
 
 .qr-form input::placeholder {
-    color: #64748b;
+    color: #a3a3a3;
 }
 
 .qr-form button {
-    padding: 11px 18px;
-    border-radius: 999px;
+    padding: 12px 22px;
+    border-radius: 14px;
     border: none;
-    background-color: var(--dash-accent-green);
-    color: #022c22;
+    background-color: var(--dash-accent-blue);
+    color: #ffffff;
     font-weight: 600;
     cursor: pointer;
     white-space: nowrap;
+    box-shadow: 0 2px 8px rgba(24, 119, 242, 0.35);
 }
 
 .qr-form button:hover {
-    background-color: var(--dash-accent-green-dark);
+    background-color: var(--dash-accent-blue-hover);
 }
 
 .qr-box {
     margin-top: 16px;
-    padding: 16px 18px;
-    border-radius: 10px;
+    padding: 18px 20px;
+    border-radius: 16px;
     background: var(--dash-bg-deep);
-    border: 1px solid var(--dash-border-subtle);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+    border: 1px solid var(--dash-border);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.8);
 }
 
 .qr-box p {
@@ -268,54 +273,57 @@ hr {
     flex-wrap: wrap;
     align-items: flex-end;
     gap: 10px;
-    padding: 10px 12px;
+    padding: 16px 18px;
     background: var(--dash-bg-deep);
-    border-radius: 10px;
-    border: 1px solid var(--dash-border-subtle);
+    border-radius: 16px;
+    border: 1px solid var(--dash-border);
 }
 
 .export-box input,
 .export-box select {
-    padding: 8px 10px;
-    border-radius: 8px;
-    border: 1px solid var(--dash-border-subtle);
-    background: var(--dash-bg);
+    padding: 10px 12px;
+    border-radius: 12px;
+    border: 1px solid var(--dash-border);
+    background: var(--dash-surface);
     color: var(--dash-text);
 }
 
 .export-box button {
-    padding: 9px 16px;
-    border-radius: 999px;
+    padding: 10px 18px;
+    border-radius: 12px;
     border: none;
-    background-color: #e5e7eb;
-    color: #020617;
+    background-color: var(--dash-accent-blue);
+    color: #ffffff;
     font-weight: 600;
     cursor: pointer;
     white-space: nowrap;
+    box-shadow: 0 2px 8px rgba(24, 119, 242, 0.3);
 }
 
 .export-box button:hover {
-    background-color: #cbd5f5;
+    background-color: var(--dash-accent-blue-hover);
 }
 
 .error {
     margin-top: 8px;
-    color: #fecaca;
+    color: #dc2626;
 }
 
 .logout {
     display: inline-block;
     padding: 8px 18px;
-    border-radius: 999px;
-    border: 1px solid var(--dash-border-subtle);
-    color: var(--dash-text);
+    border-radius: 12px;
+    border: 1px solid var(--dash-border);
+    color: var(--dash-text-muted);
     text-decoration: none;
     font-size: 14px;
+    background: var(--dash-surface);
 }
 
 .logout:hover {
-    background-color: rgba(148, 163, 184, 0.12);
-    border-color: rgba(148, 163, 184, 0.35);
+    background-color: var(--dash-surface-hover);
+    border-color: var(--dash-accent-blue);
+    color: var(--dash-accent-blue);
 }
 
 .logout.small {
@@ -372,10 +380,11 @@ hr {
 
 .stats-summary > div {
     padding: 14px 16px;
-    border-radius: 10px;
-    background: var(--dash-bg-deep);
-    border: 1px solid var(--dash-border-subtle);
+    border-radius: 14px;
+    background: var(--dash-surface);
+    border: 1px solid var(--dash-border);
     min-width: 0;
+    box-shadow: var(--dash-shadow-sm);
 }
 
 .stats-summary-label {
@@ -407,14 +416,15 @@ hr {
     flex: 1 1 140px;
     min-width: 0;
     padding: 14px 16px;
-    border-radius: 10px;
-    background: var(--dash-bg-deep);
-    border: 1px solid var(--dash-border-subtle);
+    border-radius: 14px;
+    background: var(--dash-surface);
+    border: 1px solid var(--dash-border);
+    box-shadow: var(--dash-shadow-sm);
 }
 
 .members-amount-card--total {
-    border-color: rgba(59, 130, 246, 0.35);
-    box-shadow: 0 0 0 1px rgba(59, 130, 246, 0.12);
+    border-color: rgba(24, 119, 242, 0.45);
+    box-shadow: 0 0 0 2px var(--dash-accent-blue-dim);
 }
 
 .members-amount-op {
@@ -463,32 +473,35 @@ hr {
     width: 100%;
     border-collapse: collapse;
     font-size: 14px;
-    background: var(--dash-bg-deep);
-    border-radius: 10px;
+    background: var(--dash-surface);
+    border-radius: 14px;
     overflow: hidden;
+    border: 1px solid var(--dash-border);
+    box-shadow: var(--dash-shadow-sm);
 }
 
 .stats-table th,
 .stats-table td {
-    padding: 8px 10px;
-    border-bottom: 1px solid var(--dash-border-subtle);
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--dash-border);
 }
 
 .stats-table th {
-    background: var(--dash-surface-hover);
+    background: linear-gradient(180deg, #eff6ff 0%, #e8f2fe 100%);
     text-align: left;
     font-weight: 600;
     color: var(--dash-text);
 }
 
 .stats-table tr:nth-child(even) td {
-    background: rgba(15, 23, 42, 0.55);
+    background: #f8fafc;
 }
 
 .stats-total-row td {
     font-weight: 600;
-    border-top: 1px solid var(--dash-border-subtle);
-    background: rgba(30, 41, 59, 0.65);
+    border-top: 2px solid var(--dash-border);
+    background: #eff6ff;
+    color: var(--dash-text);
 }
 
 /* Stats page: CSV download nav (uses selected date via JS) */
@@ -531,6 +544,7 @@ hr {
 .stats-csv-link:hover {
     text-decoration: underline;
     background: var(--dash-accent-blue-dim);
+    color: var(--dash-accent-blue-hover);
 }
 
 @media (min-width: 640px) {
@@ -549,7 +563,7 @@ hr {
 .stats-note {
     margin-top: 12px;
     font-size: 12px;
-    opacity: 0.9;
+    color: var(--dash-text-muted);
 }
 
 .checkbox-group {
@@ -565,8 +579,8 @@ hr {
 }
 .verify-csv-note {
     margin-top: 12px;
-    font-size: 12px;
-    opacity: 0.85;
+    font-size: 13px;
+    color: var(--dash-text-muted);
 }
 
 @media (min-width: 900px) {
@@ -599,7 +613,7 @@ hr {
 
 .unpaid-list li {
     padding: 4px 0;
-    border-bottom: 1px dashed rgba(148, 163, 184, 0.4);
+    border-bottom: 1px dashed var(--dash-border);
 }
 
 .unpaid-empty {
