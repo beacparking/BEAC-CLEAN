@@ -19,7 +19,7 @@
     </div>
     <nav class="main-nav">
         <button type="button" class="nav-link active" data-target="token-section">Token</button>
-        <button type="button" class="nav-link" data-target="csv-section">CSV</button>
+        <button type="button" class="nav-link" data-target="csv-section">Excel</button>
         <button type="button" class="nav-link" data-target="report-section">Daily report</button>
     </nav>
     <div class="app-header-right">
@@ -32,7 +32,7 @@
 <div class="page">
 
 <h1>Dashboard</h1>
-<p class="page-lead">Generate parking tokens, export CSV data, and review today’s truck counts.</p>
+<p class="page-lead">Generate parking tokens, export Excel files, and review today’s truck counts.</p>
 
 <div id="token-section" class="dashboard-section dash-card">
 <form method="POST" class="qr-form" id="token-form">
@@ -200,7 +200,7 @@
 </div>  <!-- /token-section -->
 
 <div id="csv-section" class="dashboard-section dash-card hidden">
-<h2>Export CSV</h2>
+<h2>Export Excel</h2>
 
 <div class="export-box">
     <form action="/admin/export/day" method="get">
@@ -211,33 +211,10 @@
             <option value="Bhutanese">Bhutan Trucks</option>
             <option value="Indian">India Trucks</option>
         </select>
-        <button type="submit">Export Date</button>
-    </form>
-
-    <form action="/admin/export/week" method="get">
-        <label>Select Any Date (last 7 days from it)</label>
-        <input type="date" name="date" required>
-        <select name="truck_type">
-            <option value="">All Trucks</option>
-            <option value="Bhutanese">Bhutan Trucks</option>
-            <option value="Indian">India Trucks</option>
-        </select>
-        <button type="submit">Export Date</button>
-    </form>
-
-    <form action="/admin/export/month" method="get">
-        <label>Select month</label>
-        <input type="month" name="month" required>
-        <select name="truck_type">
-            <option value="">All Trucks</option>
-            <option value="Bhutanese">Bhutan Trucks</option>
-            <option value="Indian">India Trucks</option>
-        </select>
-        <button type="submit">Export Date</button>
+        <button type="submit">Download Excel</button>
     </form>
 </div>
-<hr class="section-divider">
-</div>  <!-- /csv-section -->
+</div>  <!-- /excel-section (id csv-section for tabs) -->
 
 <div id="report-section" class="dashboard-section dash-card hidden">
 <h2>Daily report (today)</h2>
