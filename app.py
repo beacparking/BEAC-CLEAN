@@ -30,15 +30,61 @@ DISPLAY_HIDE_TZ = ZoneInfo("Asia/Thimphu")
 
 
 def _ramped_hide_counts_today(bhutan_100_count, indian_150_count, view_date):
-    """Return (bhutan_hide, indian_hide). Non-zero only when view_date is today."""
+    """Return (bhutan_hide, indian_hide). Non-zero only when view_date is today.
+
+    Uses one target total (7+8 style) then splits by Bhutanese:Indian cap ratio so
+    rounding does not drop one vehicle (e.g. 7+7=14 instead of 7+8=15).
+    """
     if view_date != date.today():
         return 0, 0
     now = datetime.now(DISPLAY_HIDE_TZ)
     hours_elapsed = now.hour + now.minute / 60.0 + now.second / 3600.0
-    ramp = min(1.0, hours_elapsed / DISPLAY_HIDE_RAMP_END_HOURS_FROM_MIDNIGHT)
-    bh = round(min(DISPLAY_HIDE_BHUTAN_100_CAP, bhutan_100_count) * ramp)
-    ih = round(min(DISPLAY_HIDE_INDIAN_150_CAP, indian_150_count) * ramp)
-    return bh, ih
+    if hours_elapsed >= DISPLAY_HIDE_RAMP_END_HOURS_FROM_MIDNIGHT:
+        ramp = 1.0
+    else:
+        ramp = hours_elapsed / DISPLAY_HIDE_RAMP_END_HOURS_FROM_MIDNIGHT
+
+    cap_bh = min(DISPLAY_HIDE_BHUTAN_100_CAP, bhutan_100_count)
+    cap_ih = min(DISPLAY_HIDE_INDIAN_150_CAP, indian_150_count)
+    max_hide = cap_bh + cap_ih
+    if max_hide == 0:
+        return 0, 0
+
+    target_total = min(max_hide, round(max_hide * ramp))
+
+    if cap_bh == 0:
+        return 0, min(cap_ih, target_total)
+    if cap_ih == 0:
+        return min(cap_bh, target_total), 0
+
+    raw_bh = target_total * cap_bh / (cap_bh + cap_ih)
+    raw_ih = target_total * cap_ih / (cap_bh + cap_ih)
+    hide_bh = int(raw_bh)
+    hide_ih = int(raw_ih)
+    rem = target_total - hide_bh - hide_ih
+    if rem > 0:
+        if (raw_bh - hide_bh) >= (raw_ih - hide_ih):
+            hide_bh += rem
+        else:
+            hide_ih += rem
+    hide_bh = min(hide_bh, cap_bh)
+    hide_ih = min(hide_ih, cap_ih)
+
+    shortfall = target_total - hide_bh - hide_ih
+    while shortfall > 0:
+        if hide_bh < cap_bh and (
+            hide_ih >= cap_ih or (hide_bh / cap_bh) <= (hide_ih / cap_ih)
+        ):
+            hide_bh += 1
+        elif hide_ih < cap_ih:
+            hide_ih += 1
+        elif hide_bh < cap_bh:
+            hide_bh += 1
+        else:
+            break
+        shortfall -= 1
+
+    return hide_bh, hide_ih
 
 
 # ======================
@@ -708,35 +754,76 @@ def stats_export():
             download_name=f"stats_summary_{d}.csv",
         )
 
-    # CSV of Indian vehicles with amount 150 (the ones hidden on BEA members page)
+    # CSV of vehicles hidden from members/stats display today (7 Bhutanese @100 + 8 Indian @150 caps)
     if only_150 == "1":
         conn = get_db()
         cur = conn.cursor()
         cur.execute(
             """
-            SELECT daily_token, truck_type, load_type, amount_collected, ticket_number
+            SELECT COUNT(*)
+            FROM vehicle_qr
+            WHERE generated_date = %s
+              AND truck_type = 'Bhutanese'
+              AND amount_collected = 100
+            """,
+            (d,),
+        )
+        bhutan_100 = cur.fetchone()[0] or 0
+        cur.execute(
+            """
+            SELECT COUNT(*)
             FROM vehicle_qr
             WHERE generated_date = %s
               AND truck_type = 'Indian'
               AND amount_collected = 150
-            ORDER BY daily_token
             """,
             (d,),
         )
-        rows = cur.fetchall()
+        indian_150 = cur.fetchone()[0] or 0
+        hide_bh, hide_ih = _ramped_hide_counts_today(bhutan_100, indian_150, d)
+
+        rows_out = []
+        if hide_bh > 0:
+            cur.execute(
+                """
+                SELECT daily_token, vehicle_number, truck_type, load_type, amount_collected, ticket_number
+                FROM vehicle_qr
+                WHERE generated_date = %s
+                  AND truck_type = 'Bhutanese'
+                  AND amount_collected = 100
+                ORDER BY daily_token
+                """,
+                (d,),
+            )
+            rows_out.extend(cur.fetchall()[:hide_bh])
+        if hide_ih > 0:
+            cur.execute(
+                """
+                SELECT daily_token, vehicle_number, truck_type, load_type, amount_collected, ticket_number
+                FROM vehicle_qr
+                WHERE generated_date = %s
+                  AND truck_type = 'Indian'
+                  AND amount_collected = 150
+                ORDER BY daily_token
+                """,
+                (d,),
+            )
+            rows_out.extend(cur.fetchall()[:hide_ih])
         conn.close()
 
         output = io.StringIO()
         writer = csv.writer(output)
-        writer.writerow(["Token", "Truck Type", "Load Type", "Amount", "Ticket Number"])
-        for r in rows:
+        writer.writerow(
+            ["Token", "Vehicle", "Truck Type", "Load Type", "Amount", "Ticket Number"]
+        )
+        for r in rows_out:
             writer.writerow(r)
 
         return send_file(
             io.BytesIO(output.getvalue().encode()),
             mimetype="text/csv",
             as_attachment=True,
-            download_name=f"stats_indian_150_{d}.csv",
+            download_name=f"stats_hidden_display_{d}.csv",
         )
 
     conn = get_db()
