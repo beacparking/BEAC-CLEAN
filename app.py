@@ -566,54 +566,35 @@ def stats():
     # Full DB counts and amounts (same as admin Daily report — no members-style hiding)
     cur.execute(
         """
-        SELECT truck_type, daily_token, load_type, amount_collected
+        SELECT truck_type, amount_collected
         FROM vehicle_qr
         WHERE generated_date = %s
-        ORDER BY truck_type, daily_token
         """,
         (stats_date,),
     )
     all_rows = cur.fetchall()
     conn.close()
 
-    bhutan_rows = [r for r in all_rows if r[0] == "Bhutanese"]
-    indian_rows = [r for r in all_rows if r[0] == "Indian"]
+    bhutanese = 0
+    indian_count = 0
+    amt_bhutan = 0.0
+    amt_indian = 0.0
+    for truck_type, amount_collected in all_rows:
+        amt = float(amount_collected) if amount_collected is not None else 0.0
+        if truck_type == "Bhutanese":
+            bhutanese += 1
+            amt_bhutan += amt
+        elif truck_type == "Indian":
+            indian_count += 1
+            amt_indian += amt
 
-    bhutanese = len(bhutan_rows)
-    indian_count = len(indian_rows)
     total = bhutanese + indian_count
-
-    amounts_bhutanese = {"total": 0, "geti": 0, "limestone": 0, "boulder": 0, "dust": 0, "other": 0}
-    amounts_indian = {"total": 0, "geti": 0, "limestone": 0, "boulder": 0, "dust": 0, "other": 0}
-    counts_bhutanese = {"geti": 0, "limestone": 0, "boulder": 0, "dust": 0, "other": 0}
-    counts_indian = {"geti": 0, "limestone": 0, "boulder": 0, "dust": 0, "other": 0}
-
-    for row in bhutan_rows:
-        _, _, load_type, amount_collected = row
-        amt = float(amount_collected) if amount_collected is not None else 0.0
-        amounts_bhutanese["total"] += amt
-        if load_type in amounts_bhutanese:
-            amounts_bhutanese[load_type] += amt
-        if load_type in counts_bhutanese:
-            counts_bhutanese[load_type] += 1
-
-    for row in indian_rows:
-        _, _, load_type, amount_collected = row
-        amt = float(amount_collected) if amount_collected is not None else 0.0
-        amounts_indian["total"] += amt
-        if load_type in amounts_indian:
-            amounts_indian[load_type] += amt
-        if load_type in counts_indian:
-            counts_indian[load_type] += 1
-
     stats_data = {
         "bhutanese": bhutanese,
         "indian": indian_count,
         "total": total,
-        "amounts_bhutanese": amounts_bhutanese,
-        "amounts_indian": amounts_indian,
-        "counts_bhutanese": counts_bhutanese,
-        "counts_indian": counts_indian,
+        "amounts_bhutanese": {"total": amt_bhutan},
+        "amounts_indian": {"total": amt_indian},
     }
 
     return render_template("stats.html", stats=stats_data, stats_date=stats_date)

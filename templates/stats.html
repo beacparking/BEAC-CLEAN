@@ -22,7 +22,7 @@
 <div class="page">
 
 <h1>Vehicle statistics</h1>
-<p class="page-lead">Breakdown by load type and Excel downloads for the selected date.</p>
+<p class="page-lead">Summary counts and Excel downloads for the selected date.</p>
 
 <div class="dash-card">
 <form method="GET" class="qr-form" id="stats-date-form">
@@ -68,53 +68,6 @@
         <div class="members-amount-card members-amount-card--total">
             <div class="stats-summary-label">Total amount collected (Nu)</div>
             <div class="stats-summary-value">{{ "%.2f"|format(stats.amounts_bhutanese.total + stats.amounts_indian.total) }}</div>
-        </div>
-    </div>
-
-    <div class="stats-tables">
-        <div>
-            <h2>Indian vehicles</h2>
-            <table class="stats-table">
-                <thead>
-                    <tr>
-                        <th>Load type</th>
-                        <th>Amount collected</th>
-                        <th>Number of vehicles</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>Geti</td>
-                        <td>{{ "%.2f"|format(stats.amounts_indian.geti) }}</td>
-                        <td>{{ stats.counts_indian.geti }}</td>
-                    </tr>
-                    <tr>
-                        <td>Lime Stone</td>
-                        <td>{{ "%.2f"|format(stats.amounts_indian.limestone) }}</td>
-                        <td>{{ stats.counts_indian.limestone }}</td>
-                    </tr>
-                    <tr>
-                        <td>Boulder</td>
-                        <td>{{ "%.2f"|format(stats.amounts_indian.boulder) }}</td>
-                        <td>{{ stats.counts_indian.boulder }}</td>
-                    </tr>
-                    <tr>
-                        <td>Dust</td>
-                        <td>{{ "%.2f"|format(stats.amounts_indian.dust) }}</td>
-                        <td>{{ stats.counts_indian.dust }}</td>
-                    </tr>
-                    <tr>
-                        <td>Other</td>
-                        <td>{{ "%.2f"|format(stats.amounts_indian.other) }}</td>
-                        <td>{{ stats.counts_indian.other }}</td>
-                    </tr>
-                    <tr class="stats-total-row">
-                        <td>Total</td>
-                        <td>{{ "%.2f"|format(stats.amounts_indian.total) }}</td>
-                        <td>{{ stats.indian }}</td>
-                    </tr>
-                </tbody>
-            </table>
         </div>
     </div>
 </div>
