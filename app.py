@@ -563,10 +563,10 @@ def stats():
     conn = get_db()
     cur = conn.cursor()
 
-    # Fetch record-level data so we can hide Indian vehicles deterministically
+    # Full DB counts and amounts (same as admin Daily report — no members-style hiding)
     cur.execute(
         """
-        SELECT id, truck_type, daily_token, load_type, amount_collected
+        SELECT truck_type, daily_token, load_type, amount_collected
         FROM vehicle_qr
         WHERE generated_date = %s
         ORDER BY truck_type, daily_token
@@ -576,17 +576,12 @@ def stats():
     all_rows = cur.fetchall()
     conn.close()
 
-    bhutan_rows = [r for r in all_rows if r[1] == "Bhutanese"]
-    indian_rows = [r for r in all_rows if r[1] == "Indian"]
+    bhutan_rows = [r for r in all_rows if r[0] == "Bhutanese"]
+    indian_rows = [r for r in all_rows if r[0] == "Indian"]
 
     bhutanese = len(bhutan_rows)
-    indian_actual = len(indian_rows)
-    bhutan_hide, indian_hide = _ramped_hide_counts_today(bhutanese, indian_actual, stats_date)
-    hidden_ids = _hidden_vehicle_ids_from_rows(all_rows, bhutan_hide, indian_hide)
-
-    bhutan_display = max(0, bhutanese - sum(1 for r in bhutan_rows if r[0] in hidden_ids))
-    indian_display = max(0, indian_actual - sum(1 for r in indian_rows if r[0] in hidden_ids))
-    total = bhutan_display + indian_display
+    indian_count = len(indian_rows)
+    total = bhutanese + indian_count
 
     amounts_bhutanese = {"total": 0, "geti": 0, "limestone": 0, "boulder": 0, "dust": 0, "other": 0}
     amounts_indian = {"total": 0, "geti": 0, "limestone": 0, "boulder": 0, "dust": 0, "other": 0}
@@ -594,9 +589,7 @@ def stats():
     counts_indian = {"geti": 0, "limestone": 0, "boulder": 0, "dust": 0, "other": 0}
 
     for row in bhutan_rows:
-        rec_id, _, _, load_type, amount_collected = row
-        if rec_id in hidden_ids:
-            continue
+        _, _, load_type, amount_collected = row
         amt = float(amount_collected) if amount_collected is not None else 0.0
         amounts_bhutanese["total"] += amt
         if load_type in amounts_bhutanese:
@@ -605,9 +598,7 @@ def stats():
             counts_bhutanese[load_type] += 1
 
     for row in indian_rows:
-        rec_id, _, _, load_type, amount_collected = row
-        if rec_id in hidden_ids:
-            continue
+        _, _, load_type, amount_collected = row
         amt = float(amount_collected) if amount_collected is not None else 0.0
         amounts_indian["total"] += amt
         if load_type in amounts_indian:
@@ -616,8 +607,8 @@ def stats():
             counts_indian[load_type] += 1
 
     stats_data = {
-        "bhutanese": bhutan_display,
-        "indian": indian_display,
+        "bhutanese": bhutanese,
+        "indian": indian_count,
         "total": total,
         "amounts_bhutanese": amounts_bhutanese,
         "amounts_indian": amounts_indian,
