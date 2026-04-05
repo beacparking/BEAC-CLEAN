@@ -29,16 +29,32 @@ DISPLAY_HIDE_INDIAN_150_CAP = 8
 DISPLAY_HIDE_RAMP_END_HOURS_FROM_MIDNIGHT = 19.5
 DISPLAY_HIDE_TZ = ZoneInfo("Asia/Thimphu")
 
+# SQL predicates aligned with _display_amount_eq (whole Nu 100 / 150)
+_SQL_AMT_100 = "ABS(amount_collected::numeric - 100) < 0.5"
+_SQL_AMT_150 = "ABS(amount_collected::numeric - 150) < 0.5"
+
 
 def _thimphu_today():
     return datetime.now(DISPLAY_HIDE_TZ).date()
 
 
+def _display_amount_eq(val, nu):
+    """Match Nu amounts from DB (Decimal/float) to whole-number targets for hide rules."""
+    if val is None:
+        return False
+    try:
+        return abs(float(val) - float(nu)) < 0.5
+    except (TypeError, ValueError):
+        return False
+
+
 def _ramped_hide_counts_today(bhutan_100_count, indian_150_count, view_date):
     """Return (bhutan_hide, indian_hide). Non-zero only when view_date is *today* in Asia/Thimphu.
 
-    Full hide from 7:30 PM Thimphu: exactly up to 7 Bhutanese @100 + 8 Indian @150 (15 total).
-    Partial ramp uses integer split (7:8 ratio) so float rounding cannot yield 7+7 instead of 7+8.
+    Full hide from 7:30 PM Thimphu: up to 7 Bhutanese @100 + 8 Indian @150 (15 when enough rows).
+
+    Partial ramp: take **Indian @150 hides first** (up to 8), then Bhutan @100 (up to 7), so a
+    target of 15 is always 8+7 — never proportional 7+7.
     """
     if view_date != _thimphu_today():
         return 0, 0
@@ -51,7 +67,6 @@ def _ramped_hide_counts_today(bhutan_100_count, indian_150_count, view_date):
     if max_hide == 0:
         return 0, 0
 
-    # From 7:30 PM Bhutan time: always full caps (no float / Python banker's round on 14.5 etc.)
     if hours_elapsed >= DISPLAY_HIDE_RAMP_END_HOURS_FROM_MIDNIGHT:
         return cap_bh, cap_ih
 
@@ -63,36 +78,20 @@ def _ramped_hide_counts_today(bhutan_100_count, indian_150_count, view_date):
     if cap_ih == 0:
         return min(cap_bh, target_total), 0
 
-    den = cap_bh + cap_ih
-    num = target_total
-    prod_bh = num * cap_bh
-    prod_ih = num * cap_ih
-    hide_bh = prod_bh // den
-    hide_ih = prod_ih // den
-    rem = num - hide_bh - hide_ih
-    if rem > 0:
-        rx = prod_bh % den
-        ry = prod_ih % den
-        if rx >= ry:
-            hide_bh += rem
-        else:
-            hide_ih += rem
-    hide_bh = min(hide_bh, cap_bh)
-    hide_ih = min(hide_ih, cap_ih)
+    # Indian first: ensures target_total==15 => 8 Indian + 7 Bhutan when caps allow
+    hide_ih = min(cap_ih, target_total)
+    hide_bh = min(cap_bh, target_total - hide_ih)
 
     shortfall = target_total - hide_bh - hide_ih
     while shortfall > 0:
-        if hide_bh < cap_bh and (
-            hide_ih >= cap_ih or (hide_bh / cap_bh) <= (hide_ih / cap_ih)
-        ):
+        if hide_bh < cap_bh:
             hide_bh += 1
+            shortfall -= 1
         elif hide_ih < cap_ih:
             hide_ih += 1
-        elif hide_bh < cap_bh:
-            hide_bh += 1
+            shortfall -= 1
         else:
             break
-        shortfall -= 1
 
     return hide_bh, hide_ih
 
@@ -550,14 +549,8 @@ def stats():
     bhutan_rows = [r for r in all_rows if r[1] == "Bhutanese"]
     indian_rows = [r for r in all_rows if r[1] == "Indian"]
 
-    bhutan_100_rows = [
-        r for r in bhutan_rows
-        if r[4] is not None and float(r[4]) == 100.0
-    ]
-    indian_150_rows = [
-        r for r in indian_rows
-        if r[4] is not None and float(r[4]) == 150.0
-    ]
+    bhutan_100_rows = [r for r in bhutan_rows if _display_amount_eq(r[4], 100)]
+    indian_150_rows = [r for r in indian_rows if _display_amount_eq(r[4], 150)]
     bhutan_hide, indian_hide = _ramped_hide_counts_today(
         len(bhutan_100_rows), len(indian_150_rows), stats_date
     )
@@ -651,24 +644,24 @@ def members():
             indian_actual = cnt
 
     cur.execute(
-        """
+        f"""
         SELECT COUNT(*)
         FROM vehicle_qr
         WHERE generated_date = %s
           AND truck_type = 'Bhutanese'
-          AND amount_collected = 100
+          AND {_SQL_AMT_100}
         """,
         (members_date,),
     )
     bhutan_100 = cur.fetchone()[0] or 0
 
     cur.execute(
-        """
+        f"""
         SELECT COUNT(*)
         FROM vehicle_qr
         WHERE generated_date = %s
           AND truck_type = 'Indian'
-          AND amount_collected = 150
+          AND {_SQL_AMT_150}
         """,
         (members_date,),
     )
@@ -769,23 +762,23 @@ def stats_export():
         conn = get_db()
         cur = conn.cursor()
         cur.execute(
-            """
+            f"""
             SELECT COUNT(*)
             FROM vehicle_qr
             WHERE generated_date = %s
               AND truck_type = 'Bhutanese'
-              AND amount_collected = 100
+              AND {_SQL_AMT_100}
             """,
             (d,),
         )
         bhutan_100 = cur.fetchone()[0] or 0
         cur.execute(
-            """
+            f"""
             SELECT COUNT(*)
             FROM vehicle_qr
             WHERE generated_date = %s
               AND truck_type = 'Indian'
-              AND amount_collected = 150
+              AND {_SQL_AMT_150}
             """,
             (d,),
         )
@@ -795,12 +788,12 @@ def stats_export():
         rows_out = []
         if hide_bh > 0:
             cur.execute(
-                """
+                f"""
                 SELECT daily_token, vehicle_number, truck_type, load_type, amount_collected, ticket_number
                 FROM vehicle_qr
                 WHERE generated_date = %s
                   AND truck_type = 'Bhutanese'
-                  AND amount_collected = 100
+                  AND {_SQL_AMT_100}
                 ORDER BY daily_token
                 """,
                 (d,),
@@ -808,12 +801,12 @@ def stats_export():
             rows_out.extend(cur.fetchall()[:hide_bh])
         if hide_ih > 0:
             cur.execute(
-                """
+                f"""
                 SELECT daily_token, vehicle_number, truck_type, load_type, amount_collected, ticket_number
                 FROM vehicle_qr
                 WHERE generated_date = %s
                   AND truck_type = 'Indian'
-                  AND amount_collected = 150
+                  AND {_SQL_AMT_150}
                 ORDER BY daily_token
                 """,
                 (d,),
@@ -887,24 +880,24 @@ def verify_export_csv():
     if d == _thimphu_today():
         if bhutan:
             cur.execute(
-                """
+                f"""
                 SELECT COUNT(*)
                 FROM vehicle_qr
                 WHERE generated_date = %s
                   AND truck_type = 'Bhutanese'
-                  AND amount_collected = 100
+                  AND {_SQL_AMT_100}
                 """,
                 (d,),
             )
             bhutan_100_count = cur.fetchone()[0] or 0
         if indian:
             cur.execute(
-                """
+                f"""
                 SELECT COUNT(*)
                 FROM vehicle_qr
                 WHERE generated_date = %s
                   AND truck_type = 'Indian'
-                  AND amount_collected = 150
+                  AND {_SQL_AMT_150}
                 """,
                 (d,),
             )
@@ -954,16 +947,14 @@ def verify_export_csv():
         if (
             t_type == "Bhutanese"
             and hide_bhutan_left > 0
-            and amount_collected is not None
-            and float(amount_collected) == 100.0
+            and _display_amount_eq(amount_collected, 100)
         ):
             hide_bhutan_left -= 1
             continue
         if (
             t_type == "Indian"
             and hide_indian_left > 0
-            and amount_collected is not None
-            and float(amount_collected) == 150.0
+            and _display_amount_eq(amount_collected, 150)
         ):
             hide_indian_left -= 1
             continue
