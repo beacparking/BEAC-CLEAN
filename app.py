@@ -165,11 +165,21 @@ def admin():
         ticket_number = request.form.get("ticket_number")
         amount_collected = request.form.get("amount_collected")
 
-        # If editing an existing token, allow changing vehicle, ticket and amount
+        # If editing an existing token, allow changing vehicle, token number, ticket and amount
         if record_id:
-            if not amount_collected:
-                error = "Amount is required to update."
+            if not daily_token_input:
+                error = "Token number is required to update."
             else:
+                try:
+                    daily_token_update = int(daily_token_input)
+                    if daily_token_update < 1:
+                        error = "Token number must be at least 1."
+                except ValueError:
+                    error = "Token number must be a number."
+                    daily_token_update = None
+            if not error and not amount_collected:
+                error = "Amount is required to update."
+            elif not error:
                 try:
                     if float(amount_collected) > 500:
                         error = "Amount cannot exceed 500."
@@ -180,32 +190,46 @@ def admin():
                 cur = conn.cursor()
                 cur.execute(
                     """
-                    UPDATE vehicle_qr
-                    SET vehicle_number = %s,
-                        ticket_number = %s,
-                        amount_collected = %s
-                    WHERE id = %s
-                    RETURNING vehicle_number, truck_type, load_type, daily_token, expires_date, ticket_number
+                    SELECT 1 FROM vehicle_qr v2
+                    WHERE v2.generated_date = (SELECT generated_date FROM vehicle_qr WHERE id = %s)
+                      AND v2.daily_token = %s
+                      AND v2.id != %s
                     """,
-                    (vehicle, ticket_number, amount_collected, record_id),
+                    (record_id, daily_token_update, record_id),
                 )
-                row = cur.fetchone()
-                conn.commit()
-                conn.close()
+                if cur.fetchone():
+                    conn.close()
+                    error = "Another vehicle already uses this token number on that date."
+                else:
+                    cur.execute(
+                        """
+                        UPDATE vehicle_qr
+                        SET vehicle_number = %s,
+                            ticket_number = %s,
+                            amount_collected = %s,
+                            daily_token = %s
+                        WHERE id = %s
+                        RETURNING vehicle_number, truck_type, load_type, daily_token, expires_date, ticket_number
+                        """,
+                        (vehicle, ticket_number, amount_collected, daily_token_update, record_id),
+                    )
+                    row = cur.fetchone()
+                    conn.commit()
+                    conn.close()
 
-                if row:
-                    vehicle, truck_type, load_type, daily_token, expires_date, ticket_number_row = row
-                    qr = {
-                        "token": daily_token,
-                        "vehicle": vehicle,
-                        "truck_type": truck_type,
-                        "load_type": load_type,
-                        "amount_collected": amount_collected,
-                        "ticket_number": ticket_number_row or "",
-                        "expiry": expires_date.strftime("%d-%m-%Y"),
-                        "qr_path": None,
-                        "qr_url": None,
-                    }
+                    if row:
+                        vehicle, truck_type, load_type, daily_token, expires_date, ticket_number_row = row
+                        qr = {
+                            "token": daily_token,
+                            "vehicle": vehicle,
+                            "truck_type": truck_type,
+                            "load_type": load_type,
+                            "amount_collected": amount_collected,
+                            "ticket_number": ticket_number_row or "",
+                            "expiry": expires_date.strftime("%d-%m-%Y"),
+                            "qr_path": None,
+                            "qr_url": None,
+                        }
         else:
             if not daily_token_input or not vehicle or not selected_date or not truck_type or not load_type or not amount_collected:
                 error = "Token number, vehicle number, date, truck type, load type and amount are required"
