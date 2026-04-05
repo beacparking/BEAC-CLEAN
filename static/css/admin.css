@@ -511,6 +511,67 @@ hr {
     color: var(--dash-text);
 }
 
+/* Stats page: manual hide override for members / verify CSV */
+.member-hide-panel {
+    margin-top: 20px;
+    padding-top: 18px;
+    border-top: 1px solid var(--dash-border-subtle);
+}
+
+.member-hide-panel__title {
+    margin: 0 0 8px;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--dash-text);
+}
+
+.member-hide-panel__lead {
+    margin: 0 0 14px;
+    font-size: 13px;
+    line-height: 1.45;
+    color: var(--dash-text-muted);
+}
+
+.member-hide-form {
+    flex-direction: column;
+    align-items: stretch;
+}
+
+.member-hide-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+    width: 100%;
+}
+
+@media (min-width: 560px) {
+    .member-hide-grid {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+.member-hide-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 4px;
+}
+
+.member-hide-actions button {
+    flex: 0 1 auto;
+}
+
+.member-hide-btn--secondary {
+    background: var(--dash-surface) !important;
+    color: var(--dash-text) !important;
+    border: 1px solid var(--dash-border) !important;
+    box-shadow: none !important;
+}
+
+.member-hide-btn--secondary:hover {
+    background: var(--dash-bg-deep) !important;
+}
+
 /* Stats page: CSV download nav (uses selected date via JS) */
 .stats-csv-nav {
     display: flex;

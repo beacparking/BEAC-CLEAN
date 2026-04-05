@@ -126,6 +126,68 @@ def _amount_hidden_by_type(all_rows, hidden_ids):
     return b_amt, i_amt
 
 
+def _ensure_member_hide_override_table(cur):
+    cur.execute(
+        """
+        CREATE TABLE IF NOT EXISTS member_hide_override (
+            for_date DATE PRIMARY KEY,
+            bhutan_count INTEGER NOT NULL DEFAULT 0,
+            indian_count INTEGER NOT NULL DEFAULT 0,
+            bhutan_amount NUMERIC(12, 2),
+            indian_amount NUMERIC(12, 2)
+        )
+        """
+    )
+
+
+def _fetch_member_hide_override(for_date):
+    conn = get_db()
+    cur = conn.cursor()
+    try:
+        _ensure_member_hide_override_table(cur)
+        cur.execute(
+            """
+            SELECT bhutan_count, indian_count, bhutan_amount, indian_amount
+            FROM member_hide_override
+            WHERE for_date = %s
+            """,
+            (for_date,),
+        )
+        row = cur.fetchone()
+    finally:
+        conn.close()
+    if not row:
+        return None
+    return {
+        "bhutan_count": int(row[0] or 0),
+        "indian_count": int(row[1] or 0),
+        "bhutan_amount": None if row[2] is None else float(row[2]),
+        "indian_amount": None if row[3] is None else float(row[3]),
+    }
+
+
+def _resolve_hide_counts(bhutan_total, indian_total, view_date, override=None):
+    """Manual override from Stats wins when set; else automatic ramp (today Thimphu only)."""
+    ov = override if override is not None else _fetch_member_hide_override(view_date)
+    if ov is not None and (ov["bhutan_count"] > 0 or ov["indian_count"] > 0):
+        return (
+            min(max(0, ov["bhutan_count"]), bhutan_total),
+            min(max(0, ov["indian_count"]), indian_total),
+        )
+    return _ramped_hide_counts_today(bhutan_total, indian_total, view_date)
+
+
+def _amount_subtract_for_members(override, detail_rows, hidden_ids):
+    """Nu to subtract from displayed Bhutan / Indian totals (override amounts or sum of hidden rows)."""
+    amt_bh_hid, amt_ih_hid = _amount_hidden_by_type(detail_rows, hidden_ids)
+    if override:
+        if override.get("bhutan_amount") is not None:
+            amt_bh_hid = float(override["bhutan_amount"])
+        if override.get("indian_amount") is not None:
+            amt_ih_hid = float(override["indian_amount"])
+    return amt_bh_hid, amt_ih_hid
+
+
 # ======================
 # LOGIN
 # ======================
@@ -589,14 +651,12 @@ def stats():
             amt_indian += amt
 
     total = bhutanese + indian_count
-    hidden_count = 0
-    hidden_amount = 0.0
-    if stats_date == _thimphu_today():
-        hb, hi = _ramped_hide_counts_today(bhutanese, indian_count, stats_date)
-        hid = _hidden_vehicle_ids_from_rows(detail_rows, hb, hi)
-        hidden_count = len(hid)
-        b_h, i_h = _amount_hidden_by_type(detail_rows, hid)
-        hidden_amount = b_h + i_h
+    hide_ov = _fetch_member_hide_override(stats_date)
+    hb, hi = _resolve_hide_counts(bhutanese, indian_count, stats_date, hide_ov)
+    hid = _hidden_vehicle_ids_from_rows(detail_rows, hb, hi)
+    hidden_count = len(hid)
+    amt_bh_h, amt_ih_h = _amount_subtract_for_members(hide_ov, detail_rows, hid)
+    hidden_amount = amt_bh_h + amt_ih_h
 
     stats_data = {
         "bhutanese": bhutanese,
@@ -608,7 +668,83 @@ def stats():
         "hidden_amount": hidden_amount,
     }
 
-    return render_template("stats.html", stats=stats_data, stats_date=stats_date)
+    return render_template(
+        "stats.html",
+        stats=stats_data,
+        stats_date=stats_date,
+        hide_override=hide_ov,
+    )
+
+
+@app.route("/stats/member-hide", methods=["POST"])
+def stats_member_hide():
+    if not (session.get("stats_logged_in") or session.get("logged_in")):
+        return redirect(url_for("login"))
+    date_str = (request.form.get("date") or "").strip()
+    try:
+        for_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+    except ValueError:
+        return redirect(url_for("stats"))
+
+    conn = get_db()
+    cur = conn.cursor()
+    _ensure_member_hide_override_table(cur)
+
+    if request.form.get("action") == "clear":
+        cur.execute(
+            "DELETE FROM member_hide_override WHERE for_date = %s",
+            (for_date,),
+        )
+        conn.commit()
+        conn.close()
+        return redirect(url_for("stats", date=for_date.isoformat()))
+
+    def _parse_nonneg_int(name):
+        raw = (request.form.get(name) or "").strip()
+        if not raw:
+            return 0
+        try:
+            return max(0, int(raw))
+        except ValueError:
+            return 0
+
+    def _parse_optional_amount(name):
+        raw = (request.form.get(name) or "").strip()
+        if not raw:
+            return None
+        try:
+            return float(raw)
+        except ValueError:
+            return None
+
+    bc = _parse_nonneg_int("bhutan_count")
+    ic = _parse_nonneg_int("indian_count")
+    ba = _parse_optional_amount("bhutan_amount")
+    ia = _parse_optional_amount("indian_amount")
+
+    if bc == 0 and ic == 0:
+        cur.execute(
+            "DELETE FROM member_hide_override WHERE for_date = %s",
+            (for_date,),
+        )
+    else:
+        cur.execute(
+            """
+            INSERT INTO member_hide_override (
+                for_date, bhutan_count, indian_count, bhutan_amount, indian_amount
+            )
+            VALUES (%s, %s, %s, %s, %s)
+            ON CONFLICT (for_date) DO UPDATE SET
+                bhutan_count = EXCLUDED.bhutan_count,
+                indian_count = EXCLUDED.indian_count,
+                bhutan_amount = EXCLUDED.bhutan_amount,
+                indian_amount = EXCLUDED.indian_amount
+            """,
+            (for_date, bc, ic, ba, ia),
+        )
+    conn.commit()
+    conn.close()
+    return redirect(url_for("stats", date=for_date.isoformat()))
 
 
 # ======================
@@ -676,15 +812,22 @@ def members():
     amount_indian = float(amt_row[2] or 0)
     conn.close()
 
-    bhutan_sub, indian_sub = _ramped_hide_counts_today(bhutanese, indian_actual, members_date)
-    hidden_ids = _hidden_vehicle_ids_from_rows(member_detail_rows, bhutan_sub, indian_sub)
+    hide_ov = _fetch_member_hide_override(members_date)
+    bhutan_hide_n, indian_hide_n = _resolve_hide_counts(
+        bhutanese, indian_actual, members_date, hide_ov
+    )
+    hidden_ids = _hidden_vehicle_ids_from_rows(
+        member_detail_rows, bhutan_hide_n, indian_hide_n
+    )
     bhutan_sub = sum(1 for r in member_detail_rows if r[0] in hidden_ids and r[1] == "Bhutanese")
     indian_sub = sum(1 for r in member_detail_rows if r[0] in hidden_ids and r[1] == "Indian")
 
     bhutan_display = max(0, bhutanese - bhutan_sub)
     indian_display = max(0, indian_actual - indian_sub)
 
-    amt_bh_hid, amt_ih_hid = _amount_hidden_by_type(member_detail_rows, hidden_ids)
+    amt_bh_hid, amt_ih_hid = _amount_subtract_for_members(
+        hide_ov, member_detail_rows, hidden_ids
+    )
     amount_subtracted = amt_bh_hid + amt_ih_hid
     amount_total_display = max(0.0, amount_total - amount_subtracted)
     amount_bhutanese_display = max(0.0, amount_bhutanese - amt_bh_hid)
@@ -846,35 +989,21 @@ def verify_export_csv():
     conn = get_db()
     cur = conn.cursor()
 
-    hidden_ids = set()
-    if d == _thimphu_today():
-        cur.execute(
-            """
-            SELECT truck_type, COUNT(*)
-            FROM vehicle_qr
-            WHERE generated_date = %s
-            GROUP BY truck_type
-            """,
-            (d,),
-        )
-        n_bh = n_in = 0
-        for tt, cnt in cur.fetchall():
-            if tt == "Bhutanese":
-                n_bh = cnt
-            elif tt == "Indian":
-                n_in = cnt
-        hide_bh, hide_ih = _ramped_hide_counts_today(n_bh, n_in, d)
-        cur.execute(
-            """
-            SELECT id, truck_type, daily_token, load_type, amount_collected
-            FROM vehicle_qr
-            WHERE generated_date = %s
-            ORDER BY truck_type, daily_token
-            """,
-            (d,),
-        )
-        detail_all = cur.fetchall()
-        hidden_ids = _hidden_vehicle_ids_from_rows(detail_all, hide_bh, hide_ih)
+    cur.execute(
+        """
+        SELECT id, truck_type, daily_token, load_type, amount_collected
+        FROM vehicle_qr
+        WHERE generated_date = %s
+        ORDER BY truck_type, daily_token
+        """,
+        (d,),
+    )
+    detail_all = cur.fetchall()
+    n_bh = sum(1 for r in detail_all if r[1] == "Bhutanese")
+    n_in = sum(1 for r in detail_all if r[1] == "Indian")
+    hide_ov = _fetch_member_hide_override(d)
+    hide_bh, hide_ih = _resolve_hide_counts(n_bh, n_in, d, hide_ov)
+    hidden_ids = _hidden_vehicle_ids_from_rows(detail_all, hide_bh, hide_ih)
 
     if bhutan and indian:
         cur.execute(

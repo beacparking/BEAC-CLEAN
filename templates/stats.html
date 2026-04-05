@@ -31,6 +31,40 @@
     <button type="submit">Show Stats</button>
 </form>
 
+<div class="member-hide-panel">
+    <h2 class="member-hide-panel__title">Hide from member &amp; verify export</h2>
+    <p class="member-hide-panel__lead">Set how many Bhutanese and Indian rows to hide for this date (same rule as the Members page and verify CSV). Leave amounts blank to use the real totals from those hidden rows.</p>
+    <form method="POST" action="{{ url_for('stats_member_hide') }}" class="qr-form member-hide-form" id="member-hide-form">
+        <input type="hidden" name="date" id="member-hide-date" value="{{ stats_date.isoformat() }}">
+        <div class="member-hide-grid">
+            <div class="field">
+                <label for="hide-bhutan-count">Bhutan — hide count</label>
+                <input type="number" name="bhutan_count" id="hide-bhutan-count" min="0" step="1"
+                       value="{% if hide_override %}{{ hide_override.bhutan_count }}{% endif %}">
+            </div>
+            <div class="field">
+                <label for="hide-bhutan-amount">Bhutan — amount (Nu)</label>
+                <input type="number" name="bhutan_amount" id="hide-bhutan-amount" min="0" step="0.01"
+                       value="{% if hide_override and hide_override.bhutan_amount is not none %}{{ hide_override.bhutan_amount }}{% endif %}">
+            </div>
+            <div class="field">
+                <label for="hide-indian-count">Indian — hide count</label>
+                <input type="number" name="indian_count" id="hide-indian-count" min="0" step="1"
+                       value="{% if hide_override %}{{ hide_override.indian_count }}{% endif %}">
+            </div>
+            <div class="field">
+                <label for="hide-indian-amount">Indian — amount (Nu)</label>
+                <input type="number" name="indian_amount" id="hide-indian-amount" min="0" step="0.01"
+                       value="{% if hide_override and hide_override.indian_amount is not none %}{{ hide_override.indian_amount }}{% endif %}">
+            </div>
+        </div>
+        <div class="member-hide-actions">
+            <button type="submit" name="action" value="save">Apply hide</button>
+            <button type="submit" name="action" value="clear" class="member-hide-btn--secondary">Clear override (use automatic)</button>
+        </div>
+    </form>
+</div>
+
 <nav class="stats-csv-nav" aria-label="Download Excel for selected date">
     <span class="stats-csv-nav__label">Download Excel</span>
     <a href="#" class="stats-csv-link" data-csv="bhutanese">Bhutanese vehicles</a>
@@ -94,8 +128,15 @@
 </div>
 <script>
 (function () {
-    var base = {{ url_for('stats_export') | tojson }};
     var input = document.getElementById('stats-date-input');
+    var hideDate = document.getElementById('member-hide-date');
+    function syncHideDate() {
+        if (input && hideDate && input.value) hideDate.value = input.value;
+    }
+    syncHideDate();
+    if (input) input.addEventListener('change', syncHideDate);
+
+    var base = {{ url_for('stats_export') | tojson }};
     document.querySelectorAll('.stats-csv-link').forEach(function (el) {
         el.addEventListener('click', function (e) {
             e.preventDefault();
