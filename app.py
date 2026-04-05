@@ -193,13 +193,16 @@ def admin():
                     SELECT 1 FROM vehicle_qr v2
                     WHERE v2.generated_date = (SELECT generated_date FROM vehicle_qr WHERE id = %s)
                       AND v2.daily_token = %s
+                      AND v2.truck_type = (SELECT truck_type FROM vehicle_qr WHERE id = %s)
                       AND v2.id != %s
                     """,
-                    (record_id, daily_token_update, record_id),
+                    (record_id, daily_token_update, record_id, record_id),
                 )
                 if cur.fetchone():
                     conn.close()
-                    error = "Another vehicle already uses this token number on that date."
+                    error = (
+                        "Another vehicle of the same truck type already uses this token number on that date."
+                    )
                 else:
                     cur.execute(
                         """
@@ -254,54 +257,102 @@ def admin():
                 conn = get_db()
                 cur = conn.cursor()
 
-                try:
-                    # INSERT NEW QR
-                    cur.execute("""
-                        INSERT INTO vehicle_qr
-                        (vehicle_number, truck_type, load_type, ticket_number, amount_collected, generated_date, expires_date, daily_token)
-                        VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
-                        RETURNING id
-                    """, (vehicle, truck_type, load_type, ticket_number, amount_collected, generated_date, expires_date, daily_token))
+                def token_taken_same_type(exclude_id=None):
+                    if exclude_id is None:
+                        cur.execute(
+                            """
+                            SELECT 1 FROM vehicle_qr
+                            WHERE generated_date = %s AND daily_token = %s AND truck_type = %s
+                            """,
+                            (generated_date, daily_token, truck_type),
+                        )
+                    else:
+                        cur.execute(
+                            """
+                            SELECT 1 FROM vehicle_qr
+                            WHERE generated_date = %s AND daily_token = %s AND truck_type = %s
+                              AND id != %s
+                            """,
+                            (generated_date, daily_token, truck_type, exclude_id),
+                        )
+                    return cur.fetchone() is not None
 
-                    token_id = cur.fetchone()[0]
-                    conn.commit()
+                token_id = None
+                if token_taken_same_type():
+                    conn.close()
+                    error = (
+                        "This token number is already used for another "
+                        + truck_type
+                        + " truck on this date. Indian and Bhutanese can share the same number."
+                    )
+                else:
+                    try:
+                        # INSERT NEW QR
+                        cur.execute("""
+                            INSERT INTO vehicle_qr
+                            (vehicle_number, truck_type, load_type, ticket_number, amount_collected, generated_date, expires_date, daily_token)
+                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                            RETURNING id
+                        """, (vehicle, truck_type, load_type, ticket_number, amount_collected, generated_date, expires_date, daily_token))
 
-                except psycopg2.errors.UniqueViolation:
-                    # Same vehicle + date already exists: update with new token and details
-                    conn.rollback()
-                    cur.execute("""
-                        UPDATE vehicle_qr
-                        SET truck_type = %s, load_type = %s, ticket_number = %s,
-                            amount_collected = %s, daily_token = %s
-                        WHERE vehicle_number = %s AND generated_date = %s
-                        RETURNING id, daily_token, expires_date
-                    """, (truck_type, load_type, ticket_number, amount_collected, daily_token, vehicle, generated_date))
-                    token_id, daily_token, expires_date = cur.fetchone()
-                    conn.commit()
+                        token_id = cur.fetchone()[0]
+                        conn.commit()
 
-                conn.close()
+                    except psycopg2.errors.UniqueViolation:
+                        # Same vehicle + date already exists: update with new token and details
+                        conn.rollback()
+                        cur.execute(
+                            "SELECT id FROM vehicle_qr WHERE vehicle_number = %s AND generated_date = %s",
+                            (vehicle, generated_date),
+                        )
+                        existing_row = cur.fetchone()
+                        if not existing_row:
+                            conn.close()
+                            error = "Could not update existing record."
+                        elif token_taken_same_type(exclude_id=existing_row[0]):
+                            conn.close()
+                            error = (
+                                "This token number is already used for another "
+                                + truck_type
+                                + " truck on this date. Indian and Bhutanese can share the same number."
+                            )
+                        else:
+                            cur.execute("""
+                                UPDATE vehicle_qr
+                                SET truck_type = %s, load_type = %s, ticket_number = %s,
+                                    amount_collected = %s, daily_token = %s
+                                WHERE vehicle_number = %s AND generated_date = %s
+                                RETURNING id, daily_token, expires_date
+                            """, (truck_type, load_type, ticket_number, amount_collected, daily_token, vehicle, generated_date))
+                            token_id, daily_token, expires_date = cur.fetchone()
+                            conn.commit()
 
-                base_url = BASE_URL or request.host_url
-                if not base_url.endswith("/"):
-                    base_url += "/"
-                qr_url = f"{base_url}verify/{token_id}"
-                qr_path = f"static/qr/{token_id}.png"
+                    if not error and token_id is not None:
+                        conn.close()
 
-                os.makedirs("static/qr", exist_ok=True)
-                # Always overwrite so QR contains current base URL (important after deploy)
-                qrcode.make(qr_url).save(qr_path)
+                        base_url = BASE_URL or request.host_url
+                        if not base_url.endswith("/"):
+                            base_url += "/"
+                        qr_url = f"{base_url}verify/{token_id}"
+                        qr_path = f"static/qr/{token_id}.png"
 
-                qr = {
-                    "token": daily_token,
-                    "vehicle": vehicle,
-                    "truck_type": truck_type,
-                    "load_type": load_type,
-                    "amount_collected": amount_collected,
-                    "ticket_number": ticket_number or "",
-                    "expiry": expires_date.strftime("%d-%m-%Y"),
-                    "qr_path": qr_path,
-                    "qr_url": qr_url
-                }
+                        os.makedirs("static/qr", exist_ok=True)
+                        # Always overwrite so QR contains current base URL (important after deploy)
+                        qrcode.make(qr_url).save(qr_path)
+
+                        qr = {
+                            "token": daily_token,
+                            "vehicle": vehicle,
+                            "truck_type": truck_type,
+                            "load_type": load_type,
+                            "amount_collected": amount_collected,
+                            "ticket_number": ticket_number or "",
+                            "expiry": expires_date.strftime("%d-%m-%Y"),
+                            "qr_path": qr_path,
+                            "qr_url": qr_url
+                        }
+                    elif not error:
+                        conn.close()
     # Last 3 vehicles for today (any truck type)
     conn = get_db()
     cur = conn.cursor()
