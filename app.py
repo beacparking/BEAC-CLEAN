@@ -678,8 +678,11 @@ def stats():
     hb, hi = _resolve_hide_counts(bhutanese, indian_count, stats_date, hide_ov)
     hid = _hidden_vehicle_ids_from_rows(detail_rows, hb, hi)
     hidden_count = len(hid)
+    actual_bh_hid, actual_ih_hid = _amount_hidden_by_type(detail_rows, hid)
+    # Nu subtracted on member/net rows (uses form overrides when set)
     amt_bh_h, amt_ih_h = _amount_subtract_for_members(hide_ov, detail_rows, hid)
-    hidden_amount = amt_bh_h + amt_ih_h
+    # Card "Amount hidden" = real total on those rows in the database
+    hidden_amount = actual_bh_hid + actual_ih_hid
 
     bhutan_sub = sum(1 for r in detail_rows if r[0] in hid and r[1] == "Bhutanese")
     indian_sub = sum(1 for r in detail_rows if r[0] in hid and r[1] == "Indian")
@@ -687,6 +690,15 @@ def stats():
     indian_visible = max(0, indian_count - indian_sub)
     amt_bhutan_net = max(0.0, amt_bhutan - amt_bh_h)
     amt_indian_net = max(0.0, amt_indian - amt_ih_h)
+
+    override_for_net = hide_ov and (
+        hide_ov.get("bhutan_amount") is not None
+        or hide_ov.get("indian_amount") is not None
+    )
+    net_subtract_total = amt_bh_h + amt_ih_h
+    hidden_amount_show_override_note = bool(override_for_net) and abs(
+        hidden_amount - net_subtract_total
+    ) > 0.005
 
     stats_data = {
         "bhutanese": bhutan_visible,
@@ -696,6 +708,8 @@ def stats():
         "amounts_indian": {"total": amt_indian_net},
         "hidden_count": hidden_count,
         "hidden_amount": hidden_amount,
+        "hidden_amount_show_override_note": hidden_amount_show_override_note,
+        "net_subtract_nu": net_subtract_total,
     }
 
     return render_template(

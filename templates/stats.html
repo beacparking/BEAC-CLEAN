@@ -122,6 +122,9 @@
             <div class="stats-summary-value">{{ "%.2f"|format(stats.hidden_amount) }}</div>
         </div>
     </div>
+    {% if stats.hidden_amount_show_override_note %}
+    <p class="stats-note">This total is the sum of <strong>amount collected</strong> on the hidden vehicles. Net amounts above use your entered hide Nu ({{ "%.2f"|format(stats.net_subtract_nu) }} total) for the subtraction, which can differ.</p>
+    {% endif %}
 </div>
 {% endif %}
 </div>
