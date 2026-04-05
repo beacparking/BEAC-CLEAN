@@ -19,6 +19,24 @@ BASE_URL = os.environ.get("BASE_URL")  # e.g. "http://192.168.1.7:5000"
 def get_db():
     return psycopg2.connect(DATABASE_URL)
 
+
+# /members, /stats, /verify/export: hide these from display for *today only* (ramps over the day).
+DISPLAY_HIDE_BHUTAN_100_CAP = 7
+DISPLAY_HIDE_INDIAN_150_CAP = 8
+
+
+def _ramped_hide_counts_today(bhutan_100_count, indian_150_count, view_date):
+    """Return (bhutan_hide, indian_hide). Non-zero only when view_date is today."""
+    if view_date != date.today():
+        return 0, 0
+    now = datetime.now()
+    hours_elapsed = now.hour + now.minute / 60.0 + now.second / 3600.0
+    ramp = min(1.0, hours_elapsed / 24.0)
+    bh = round(min(DISPLAY_HIDE_BHUTAN_100_CAP, bhutan_100_count) * ramp)
+    ih = round(min(DISPLAY_HIDE_INDIAN_150_CAP, indian_150_count) * ramp)
+    return bh, ih
+
+
 # ======================
 # LOGIN
 # ======================
@@ -472,38 +490,40 @@ def stats():
     bhutan_rows = [r for r in all_rows if r[1] == "Bhutanese"]
     indian_rows = [r for r in all_rows if r[1] == "Indian"]
 
-    bhutanese = len(bhutan_rows)
-    indian_actual = len(indian_rows)
-
-    # Hidden rule: hide up to 35 Indian vehicles that paid 150 Nu (same ramp rules as /members)
+    bhutan_100_rows = [
+        r for r in bhutan_rows
+        if r[4] is not None and float(r[4]) == 100.0
+    ]
     indian_150_rows = [
         r for r in indian_rows
         if r[4] is not None and float(r[4]) == 150.0
     ]
-    indian_150_count = len(indian_150_rows)
-    target_subtraction = min(35, indian_150_count)
+    bhutan_hide, indian_hide = _ramped_hide_counts_today(
+        len(bhutan_100_rows), len(indian_150_rows), stats_date
+    )
+    hidden_bhutan_ids = set(
+        r[0] for r in sorted(bhutan_100_rows, key=lambda r: r[2])[:bhutan_hide]
+    )
+    hidden_indian_ids = set(
+        r[0] for r in sorted(indian_150_rows, key=lambda r: r[2])[:indian_hide]
+    )
+    hidden_ids = hidden_bhutan_ids | hidden_indian_ids
 
-    today = date.today()
-    if stats_date > today:
-        subtraction = 0
-    elif stats_date < today:
-        subtraction = target_subtraction
-    else:
-        now = datetime.now()
-        hours_elapsed = now.hour + now.minute / 60.0 + now.second / 3600.0
-        subtraction = min(target_subtraction, target_subtraction * hours_elapsed / 24.0)
-        subtraction = round(subtraction)
-
-    hidden_ids = set(r[0] for r in indian_150_rows[:subtraction])
-    indian_display = max(0, indian_actual - len(hidden_ids))
-    total = bhutanese + indian_display
+    bhutanese = len(bhutan_rows)
+    indian_actual = len(indian_rows)
+    bhutan_display = max(0, bhutanese - len(hidden_bhutan_ids))
+    indian_display = max(0, indian_actual - len(hidden_indian_ids))
+    total = bhutan_display + indian_display
 
     amounts_bhutanese = {"total": 0, "geti": 0, "limestone": 0, "boulder": 0, "dust": 0, "other": 0}
     amounts_indian = {"total": 0, "geti": 0, "limestone": 0, "boulder": 0, "dust": 0, "other": 0}
     counts_bhutanese = {"geti": 0, "limestone": 0, "boulder": 0, "dust": 0, "other": 0}
     counts_indian = {"geti": 0, "limestone": 0, "boulder": 0, "dust": 0, "other": 0}
 
-    for _, _, _, load_type, amount_collected in bhutan_rows:
+    for row in bhutan_rows:
+        rec_id, _, _, load_type, amount_collected = row
+        if rec_id in hidden_ids:
+            continue
         amt = float(amount_collected) if amount_collected is not None else 0.0
         amounts_bhutanese["total"] += amt
         if load_type in amounts_bhutanese:
@@ -523,7 +543,7 @@ def stats():
             counts_indian[load_type] += 1
 
     stats_data = {
-        "bhutanese": bhutanese,
+        "bhutanese": bhutan_display,
         "indian": indian_display,
         "total": total,
         "amounts_bhutanese": amounts_bhutanese,
@@ -536,7 +556,7 @@ def stats():
 
 
 # ======================
-# BEA MEMBERS (Indian count shown 30 less by end of day, ramps by hour)
+# BEA MEMBERS (today only: hide up to 7 Bhutanese @100 + 8 Indian @150 Nu, ramped over the day)
 # ======================
 @app.route("/members", methods=["GET"])
 def members():
@@ -570,7 +590,18 @@ def members():
         elif t_type == "Indian":
             indian_actual = cnt
 
-    # Count Indian vehicles with amount = 150 (these are the 35 to hide)
+    cur.execute(
+        """
+        SELECT COUNT(*)
+        FROM vehicle_qr
+        WHERE generated_date = %s
+          AND truck_type = 'Bhutanese'
+          AND amount_collected = 100
+        """,
+        (members_date,),
+    )
+    bhutan_100 = cur.fetchone()[0] or 0
+
     cur.execute(
         """
         SELECT COUNT(*)
@@ -601,40 +632,27 @@ def members():
     amount_indian = float(amt_row[2] or 0)
     conn.close()
 
-    # Target subtraction is up to 35 vehicles, but not more than Indian with amount 150
-    target_subtraction = min(35, indian_150)
+    bhutan_sub, indian_sub = _ramped_hide_counts_today(bhutan_100, indian_150, members_date)
 
-    # Indian shown less than stats by end of day; during the day subtract 1–3 per hour on average
-    today = date.today()
-    if members_date > today:
-        subtraction = 0
-    elif members_date < today:
-        subtraction = target_subtraction
-    else:
-        now = datetime.now()
-        hours_elapsed = now.hour + now.minute / 60.0 + now.second / 3600.0
-        # Ramp so that by end of day (24h) we reach the target subtraction
-        subtraction = min(target_subtraction, target_subtraction * hours_elapsed / 24.0)
-        subtraction = round(subtraction)
+    bhutan_display = max(0, bhutanese - bhutan_sub)
+    indian_display = max(0, indian_actual - indian_sub)
 
-    indian_display = max(0, indian_actual - subtraction)
-
-    # Amounts shown with same subtraction: each subtracted vehicle is 150 Nu (Indian 150)
-    amount_subtracted = subtraction * 150.0
+    amount_subtracted = bhutan_sub * 100.0 + indian_sub * 150.0
     amount_total_display = max(0.0, amount_total - amount_subtracted)
-    amount_indian_display = max(0.0, amount_indian - amount_subtracted)
+    amount_bhutanese_display = max(0.0, amount_bhutanese - bhutan_sub * 100.0)
+    amount_indian_display = max(0.0, amount_indian - indian_sub * 150.0)
 
     return render_template(
         "members.html",
         members_date=members_date,
-        bhutanese=bhutanese,
+        bhutanese=bhutan_display,
         indian=indian_display,
         indian_actual=indian_actual,
         amount_total=amount_total_display,
-        amount_bhutanese=amount_bhutanese,
+        amount_bhutanese=amount_bhutanese_display,
         amount_indian=amount_indian_display,
         amount_subtracted=amount_subtracted,
-        subtraction=subtraction,
+        subtraction=indian_sub,
     )
 
 
@@ -760,52 +778,39 @@ def verify_export_csv():
     except ValueError:
         return redirect(url_for("verify_export", error="Invalid date."))
 
-    # Compute the same Indian subtraction that BEA Members uses for this date
     conn = get_db()
     cur = conn.cursor()
-    indian_actual = 0
-    if indian:
-        cur.execute(
-            """
-            SELECT truck_type, COUNT(*)
-            FROM vehicle_qr
-            WHERE generated_date = %s
-            GROUP BY truck_type
-            """,
-            (d,),
-        )
-        for t_type, cnt in cur.fetchall():
-            if t_type == "Indian":
-                indian_actual = cnt
 
-        # Count Indian vehicles with amount = 150 (these are the ones that can be hidden)
-        cur.execute(
-            """
-            SELECT COUNT(*)
-            FROM vehicle_qr
-            WHERE generated_date = %s
-              AND truck_type = 'Indian'
-              AND amount_collected = 150
-            """,
-            (d,),
-        )
-        indian_150 = cur.fetchone()[0] or 0
+    bhutan_100_count = 0
+    indian_150_count = 0
+    if d == date.today():
+        if bhutan:
+            cur.execute(
+                """
+                SELECT COUNT(*)
+                FROM vehicle_qr
+                WHERE generated_date = %s
+                  AND truck_type = 'Bhutanese'
+                  AND amount_collected = 100
+                """,
+                (d,),
+            )
+            bhutan_100_count = cur.fetchone()[0] or 0
+        if indian:
+            cur.execute(
+                """
+                SELECT COUNT(*)
+                FROM vehicle_qr
+                WHERE generated_date = %s
+                  AND truck_type = 'Indian'
+                  AND amount_collected = 150
+                """,
+                (d,),
+            )
+            indian_150_count = cur.fetchone()[0] or 0
+    bhutan_sub, indian_sub = _ramped_hide_counts_today(bhutan_100_count, indian_150_count, d)
 
-        target_subtraction = min(35, indian_150)
-        today = date.today()
-        if d > today:
-            subtraction = 0
-        elif d < today:
-            subtraction = target_subtraction
-        else:
-            now = datetime.now()
-            hours_elapsed = now.hour + now.minute / 60.0 + now.second / 3600.0
-            subtraction = min(target_subtraction, target_subtraction * hours_elapsed / 24.0)
-            subtraction = round(subtraction)
-    else:
-        subtraction = 0
-
-    # Fetch all relevant rows; we will drop exactly `subtraction` Indian 150-Nu vehicles in Python
+    # Fetch rows; drop Bhutanese @100 and Indian @150 to match /members for today only
     if bhutan and indian:
         cur.execute(
             """
@@ -841,12 +846,25 @@ def verify_export_csv():
     all_rows = cur.fetchall()
     conn.close()
 
-    # Apply subtraction: skip the first `subtraction` Indian rows with amount 150
     rows = []
-    hide_left = subtraction
+    hide_bhutan_left = bhutan_sub
+    hide_indian_left = indian_sub
     for t_type, vehicle_number, load_type, amount_collected in all_rows:
-        if t_type == "Indian" and hide_left > 0 and amount_collected is not None and float(amount_collected) == 150.0:
-            hide_left -= 1
+        if (
+            t_type == "Bhutanese"
+            and hide_bhutan_left > 0
+            and amount_collected is not None
+            and float(amount_collected) == 100.0
+        ):
+            hide_bhutan_left -= 1
+            continue
+        if (
+            t_type == "Indian"
+            and hide_indian_left > 0
+            and amount_collected is not None
+            and float(amount_collected) == 150.0
+        ):
+            hide_indian_left -= 1
             continue
         rows.append((vehicle_number, load_type, amount_collected))
 
