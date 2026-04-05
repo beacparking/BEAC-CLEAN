@@ -685,18 +685,13 @@ def stats():
     actual_bh_hid, actual_ih_hid = _amount_hidden_by_type(detail_rows, hid)
     hidden_amount = actual_bh_hid + actual_ih_hid
 
-    bhutan_sub = sum(1 for r in detail_rows if r[0] in hid and r[1] == "Bhutanese")
-    indian_sub = sum(1 for r in detail_rows if r[0] in hid and r[1] == "Indian")
-    bhutan_visible = max(0, bhutanese - bhutan_sub)
-    indian_visible = max(0, indian_count - indian_sub)
-    amt_bhutan_net, amt_indian_net = _amounts_visible_nu(detail_rows, hid)
-
+    # Full-day counts and Nu (Members page uses visible-only totals)
     stats_data = {
-        "bhutanese": bhutan_visible,
-        "indian": indian_visible,
-        "total": bhutan_visible + indian_visible,
-        "amounts_bhutanese": {"total": amt_bhutan_net},
-        "amounts_indian": {"total": amt_indian_net},
+        "bhutanese": bhutanese,
+        "indian": indian_count,
+        "total": total,
+        "amounts_bhutanese": {"total": amt_bhutan},
+        "amounts_indian": {"total": amt_indian},
         "hidden_count": hidden_count,
         "hidden_amount": hidden_amount,
     }
@@ -892,10 +887,24 @@ def stats_export():
     summary = request.args.get("summary")
     only_150 = request.args.get("only_150") or request.args.get("only_200")
 
-    # Summary CSV: Nu on visible rows only (same as Members / verify export)
+    # Summary CSV: full database totals for the day (admin / stats parity)
     if summary == "1":
-        hidden_ids, detail_rows, _hide_ov = _member_hide_sets(d)
-        bhutan_amt, indian_amt = _amounts_visible_nu(detail_rows, hidden_ids)
+        conn = get_db()
+        cur = conn.cursor()
+        cur.execute(
+            """
+            SELECT
+              COALESCE(SUM(CASE WHEN truck_type = 'Bhutanese' THEN amount_collected END), 0) AS bhutanese_amount,
+              COALESCE(SUM(CASE WHEN truck_type = 'Indian' THEN amount_collected END), 0) AS indian_amount
+            FROM vehicle_qr
+            WHERE generated_date = %s
+            """,
+            (d,),
+        )
+        row = cur.fetchone()
+        conn.close()
+        bhutan_amt = float(row[0] or 0)
+        indian_amt = float(row[1] or 0)
         total_amt = bhutan_amt + indian_amt
 
         output = io.StringIO()
@@ -957,12 +966,10 @@ def stats_export():
             download_name=f"stats_hidden_display_{d}.csv",
         )
 
-    hidden_ids, _, _ = _member_hide_sets(d)
-
     conn = get_db()
     cur = conn.cursor()
     query = """
-        SELECT id, daily_token, vehicle_number, truck_type, load_type, ticket_number, amount_collected, generated_date, expires_date
+        SELECT daily_token, vehicle_number, truck_type, load_type, ticket_number, amount_collected, generated_date, expires_date
         FROM vehicle_qr
         WHERE generated_date = %s
     """
@@ -973,9 +980,8 @@ def stats_export():
     query += " ORDER BY daily_token"
 
     cur.execute(query, tuple(params))
-    rows = [r for r in cur.fetchall() if r[0] not in hidden_ids]
+    rows = cur.fetchall()
     conn.close()
-    rows = [r[1:] for r in rows]
 
     if truck_type == "Bhutanese":
         filename = f"stats_{d}_bhutanese.csv"
