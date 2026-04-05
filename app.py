@@ -563,23 +563,23 @@ def stats():
     conn = get_db()
     cur = conn.cursor()
 
-    # Full DB counts and amounts (same as admin Daily report — no members-style hiding)
+    # Full DB counts and amounts; row detail for hidden-vehicle line (Members rule, today Thimphu only)
     cur.execute(
         """
-        SELECT truck_type, amount_collected
+        SELECT id, truck_type, daily_token, load_type, amount_collected
         FROM vehicle_qr
         WHERE generated_date = %s
         """,
         (stats_date,),
     )
-    all_rows = cur.fetchall()
+    detail_rows = cur.fetchall()
     conn.close()
 
     bhutanese = 0
     indian_count = 0
     amt_bhutan = 0.0
     amt_indian = 0.0
-    for truck_type, amount_collected in all_rows:
+    for _id, truck_type, _tok, _lt, amount_collected in detail_rows:
         amt = float(amount_collected) if amount_collected is not None else 0.0
         if truck_type == "Bhutanese":
             bhutanese += 1
@@ -589,12 +589,23 @@ def stats():
             amt_indian += amt
 
     total = bhutanese + indian_count
+    hidden_count = 0
+    hidden_amount = 0.0
+    if stats_date == _thimphu_today():
+        hb, hi = _ramped_hide_counts_today(bhutanese, indian_count, stats_date)
+        hid = _hidden_vehicle_ids_from_rows(detail_rows, hb, hi)
+        hidden_count = len(hid)
+        b_h, i_h = _amount_hidden_by_type(detail_rows, hid)
+        hidden_amount = b_h + i_h
+
     stats_data = {
         "bhutanese": bhutanese,
         "indian": indian_count,
         "total": total,
         "amounts_bhutanese": {"total": amt_bhutan},
         "amounts_indian": {"total": amt_indian},
+        "hidden_count": hidden_count,
+        "hidden_amount": hidden_amount,
     }
 
     return render_template("stats.html", stats=stats_data, stats_date=stats_date)

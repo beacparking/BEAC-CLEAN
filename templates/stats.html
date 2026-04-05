@@ -76,6 +76,17 @@
             <div class="stats-summary-value">{{ "%.2f"|format(stats.amounts_bhutanese.total + stats.amounts_indian.total) }}</div>
         </div>
     </div>
+    <div class="members-amount-equation" role="group" aria-label="Vehicles hidden on Members view">
+        <div class="members-amount-card">
+            <div class="stats-summary-label">Hidden vehicle count</div>
+            <div class="stats-summary-value">{{ stats.hidden_count }}</div>
+        </div>
+        <span class="members-amount-op" aria-hidden="true">=</span>
+        <div class="members-amount-card members-amount-card--total">
+            <div class="stats-summary-label">Amount collected (Nu)</div>
+            <div class="stats-summary-value">{{ "%.2f"|format(stats.hidden_amount) }}</div>
+        </div>
+    </div>
 </div>
 {% endif %}
 </div>
