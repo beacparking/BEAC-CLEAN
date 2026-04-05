@@ -5,6 +5,7 @@ import os
 import qrcode
 import csv
 import io
+import math
 from datetime import datetime, timedelta, date
 from zoneinfo import ZoneInfo
 
@@ -29,20 +30,20 @@ DISPLAY_HIDE_RAMP_END_HOURS_FROM_MIDNIGHT = 19.5
 DISPLAY_HIDE_TZ = ZoneInfo("Asia/Thimphu")
 
 
-def _ramped_hide_counts_today(bhutan_100_count, indian_150_count, view_date):
-    """Return (bhutan_hide, indian_hide). Non-zero only when view_date is today.
+def _thimphu_today():
+    return datetime.now(DISPLAY_HIDE_TZ).date()
 
-    Uses one target total (7+8 style) then splits by Bhutanese:Indian cap ratio so
-    rounding does not drop one vehicle (e.g. 7+7=14 instead of 7+8=15).
+
+def _ramped_hide_counts_today(bhutan_100_count, indian_150_count, view_date):
+    """Return (bhutan_hide, indian_hide). Non-zero only when view_date is *today* in Asia/Thimphu.
+
+    Full hide from 7:30 PM Thimphu: exactly up to 7 Bhutanese @100 + 8 Indian @150 (15 total).
+    Partial ramp uses integer split (7:8 ratio) so float rounding cannot yield 7+7 instead of 7+8.
     """
-    if view_date != date.today():
+    if view_date != _thimphu_today():
         return 0, 0
     now = datetime.now(DISPLAY_HIDE_TZ)
     hours_elapsed = now.hour + now.minute / 60.0 + now.second / 3600.0
-    if hours_elapsed >= DISPLAY_HIDE_RAMP_END_HOURS_FROM_MIDNIGHT:
-        ramp = 1.0
-    else:
-        ramp = hours_elapsed / DISPLAY_HIDE_RAMP_END_HOURS_FROM_MIDNIGHT
 
     cap_bh = min(DISPLAY_HIDE_BHUTAN_100_CAP, bhutan_100_count)
     cap_ih = min(DISPLAY_HIDE_INDIAN_150_CAP, indian_150_count)
@@ -50,20 +51,29 @@ def _ramped_hide_counts_today(bhutan_100_count, indian_150_count, view_date):
     if max_hide == 0:
         return 0, 0
 
-    target_total = min(max_hide, round(max_hide * ramp))
+    # From 7:30 PM Bhutan time: always full caps (no float / Python banker's round on 14.5 etc.)
+    if hours_elapsed >= DISPLAY_HIDE_RAMP_END_HOURS_FROM_MIDNIGHT:
+        return cap_bh, cap_ih
+
+    ramp_frac = hours_elapsed / DISPLAY_HIDE_RAMP_END_HOURS_FROM_MIDNIGHT
+    target_total = min(max_hide, max(0, math.floor(max_hide * ramp_frac + 0.5)))
 
     if cap_bh == 0:
         return 0, min(cap_ih, target_total)
     if cap_ih == 0:
         return min(cap_bh, target_total), 0
 
-    raw_bh = target_total * cap_bh / (cap_bh + cap_ih)
-    raw_ih = target_total * cap_ih / (cap_bh + cap_ih)
-    hide_bh = int(raw_bh)
-    hide_ih = int(raw_ih)
-    rem = target_total - hide_bh - hide_ih
+    den = cap_bh + cap_ih
+    num = target_total
+    prod_bh = num * cap_bh
+    prod_ih = num * cap_ih
+    hide_bh = prod_bh // den
+    hide_ih = prod_ih // den
+    rem = num - hide_bh - hide_ih
     if rem > 0:
-        if (raw_bh - hide_bh) >= (raw_ih - hide_ih):
+        rx = prod_bh % den
+        ry = prod_ih % den
+        if rx >= ry:
             hide_bh += rem
         else:
             hide_ih += rem
@@ -166,8 +176,8 @@ def admin():
     qr = None
     error = None
 
-    # Simple daily counts for today's date, shown in Daily report tab
-    today = date.today()
+    # Simple daily counts for today's date, shown in Daily report tab (Bhutan calendar)
+    today = _thimphu_today()
     conn = get_db()
     cur = conn.cursor()
 
@@ -519,7 +529,7 @@ def stats():
     if date_str:
         stats_date = datetime.strptime(date_str, "%Y-%m-%d").date()
     else:
-        stats_date = date.today()
+        stats_date = _thimphu_today()
 
     conn = get_db()
     cur = conn.cursor()
@@ -617,7 +627,7 @@ def members():
     if date_str:
         members_date = datetime.strptime(date_str, "%Y-%m-%d").date()
     else:
-        members_date = date.today()
+        members_date = _thimphu_today()
 
     conn = get_db()
     cur = conn.cursor()
@@ -874,7 +884,7 @@ def verify_export_csv():
 
     bhutan_100_count = 0
     indian_150_count = 0
-    if d == date.today():
+    if d == _thimphu_today():
         if bhutan:
             cur.execute(
                 """
