@@ -331,7 +331,7 @@ def admin():
         for r in last_rows
     ]
 
-    # Optional search by vehicle number OR token number (all dates)
+    # Search: by token = today only; by vehicle plate = all dates
     search_vehicle = request.args.get("search_vehicle")
     search_rows = []
     search_mode = None
@@ -347,10 +347,10 @@ def admin():
                 """
                 SELECT id, daily_token, ticket_number, generated_date, amount_collected, vehicle_number, truck_type, load_type
                 FROM vehicle_qr
-                WHERE daily_token = %s
-                ORDER BY generated_date DESC, daily_token DESC
+                WHERE daily_token = %s AND generated_date = %s
+                ORDER BY daily_token DESC
                 """,
-                (token_val,),
+                (token_val, today),
             )
         else:
             search_mode = "vehicle"

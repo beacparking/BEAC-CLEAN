@@ -145,7 +145,7 @@
     <form method="GET" class="qr-form">
         <div class="field">
             <label>Search by vehicle or token</label>
-            <input type="text" name="search_vehicle" placeholder="e.g. BP-2A-1234 or 30" value="{{ search_vehicle or '' }}">
+            <input type="text" name="search_vehicle" placeholder="Vehicle (any day) or token (today only)" value="{{ search_vehicle or '' }}">
         </div>
         <button type="submit">Search</button>
     </form>
@@ -193,7 +193,7 @@
             </table>
             </div>
         {% else %}
-            <p class="unpaid-empty">No records found for this vehicle.</p>
+            <p class="unpaid-empty">{% if search_mode == 'token' %}No vehicle with this token for today.{% else %}No records found for this vehicle.{% endif %}</p>
         {% endif %}
     {% endif %}
 </div>
