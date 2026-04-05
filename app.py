@@ -126,6 +126,21 @@ def _amount_hidden_by_type(all_rows, hidden_ids):
     return b_amt, i_amt
 
 
+def _amounts_visible_nu(detail_rows, hidden_ids):
+    """Nu totals on rows not hidden (members, stats net, summary CSV)."""
+    b_amt = 0.0
+    i_amt = 0.0
+    for r in detail_rows:
+        if r[0] in hidden_ids:
+            continue
+        amt = float(r[4]) if r[4] is not None else 0.0
+        if r[1] == "Bhutanese":
+            b_amt += amt
+        elif r[1] == "Indian":
+            i_amt += amt
+    return b_amt, i_amt
+
+
 def _ensure_member_hide_override_table(cur):
     cur.execute(
         """
@@ -175,17 +190,6 @@ def _resolve_hide_counts(bhutan_total, indian_total, view_date, override=None):
             min(max(0, ov["indian_count"]), indian_total),
         )
     return _ramped_hide_counts_today(bhutan_total, indian_total, view_date)
-
-
-def _amount_subtract_for_members(override, detail_rows, hidden_ids):
-    """Nu to subtract from displayed Bhutan / Indian totals (override amounts or sum of hidden rows)."""
-    amt_bh_hid, amt_ih_hid = _amount_hidden_by_type(detail_rows, hidden_ids)
-    if override:
-        if override.get("bhutan_amount") is not None:
-            amt_bh_hid = float(override["bhutan_amount"])
-        if override.get("indian_amount") is not None:
-            amt_ih_hid = float(override["indian_amount"])
-    return amt_bh_hid, amt_ih_hid
 
 
 def _member_hide_sets(for_date):
@@ -679,26 +683,13 @@ def stats():
     hid = _hidden_vehicle_ids_from_rows(detail_rows, hb, hi)
     hidden_count = len(hid)
     actual_bh_hid, actual_ih_hid = _amount_hidden_by_type(detail_rows, hid)
-    # Nu subtracted on member/net rows (uses form overrides when set)
-    amt_bh_h, amt_ih_h = _amount_subtract_for_members(hide_ov, detail_rows, hid)
-    # Card "Amount hidden" = real total on those rows in the database
     hidden_amount = actual_bh_hid + actual_ih_hid
 
     bhutan_sub = sum(1 for r in detail_rows if r[0] in hid and r[1] == "Bhutanese")
     indian_sub = sum(1 for r in detail_rows if r[0] in hid and r[1] == "Indian")
     bhutan_visible = max(0, bhutanese - bhutan_sub)
     indian_visible = max(0, indian_count - indian_sub)
-    amt_bhutan_net = max(0.0, amt_bhutan - amt_bh_h)
-    amt_indian_net = max(0.0, amt_indian - amt_ih_h)
-
-    override_for_net = hide_ov and (
-        hide_ov.get("bhutan_amount") is not None
-        or hide_ov.get("indian_amount") is not None
-    )
-    net_subtract_total = amt_bh_h + amt_ih_h
-    hidden_amount_show_override_note = bool(override_for_net) and abs(
-        hidden_amount - net_subtract_total
-    ) > 0.005
+    amt_bhutan_net, amt_indian_net = _amounts_visible_nu(detail_rows, hid)
 
     stats_data = {
         "bhutanese": bhutan_visible,
@@ -708,8 +699,6 @@ def stats():
         "amounts_indian": {"total": amt_indian_net},
         "hidden_count": hidden_count,
         "hidden_amount": hidden_amount,
-        "hidden_amount_show_override_note": hidden_amount_show_override_note,
-        "net_subtract_nu": net_subtract_total,
     }
 
     return render_template(
@@ -869,13 +858,12 @@ def members():
     bhutan_display = max(0, bhutanese - bhutan_sub)
     indian_display = max(0, indian_actual - indian_sub)
 
-    amt_bh_hid, amt_ih_hid = _amount_subtract_for_members(
-        hide_ov, member_detail_rows, hidden_ids
-    )
+    amt_bh_hid, amt_ih_hid = _amount_hidden_by_type(member_detail_rows, hidden_ids)
     amount_subtracted = amt_bh_hid + amt_ih_hid
-    amount_total_display = max(0.0, amount_total - amount_subtracted)
-    amount_bhutanese_display = max(0.0, amount_bhutanese - amt_bh_hid)
-    amount_indian_display = max(0.0, amount_indian - amt_ih_hid)
+    amount_bhutanese_display, amount_indian_display = _amounts_visible_nu(
+        member_detail_rows, hidden_ids
+    )
+    amount_total_display = amount_bhutanese_display + amount_indian_display
 
     return render_template(
         "members.html",
@@ -904,18 +892,10 @@ def stats_export():
     summary = request.args.get("summary")
     only_150 = request.args.get("only_150") or request.args.get("only_200")
 
-    # Summary CSV: amounts after same hide rules as Members / verify export
+    # Summary CSV: Nu on visible rows only (same as Members / verify export)
     if summary == "1":
-        hidden_ids, detail_rows, hide_ov = _member_hide_sets(d)
-        amt_bhutan = sum(
-            float(r[4] or 0) for r in detail_rows if r[1] == "Bhutanese"
-        )
-        amt_indian = sum(float(r[4] or 0) for r in detail_rows if r[1] == "Indian")
-        amt_bh_h, amt_ih_h = _amount_subtract_for_members(
-            hide_ov, detail_rows, hidden_ids
-        )
-        bhutan_amt = max(0.0, amt_bhutan - amt_bh_h)
-        indian_amt = max(0.0, amt_indian - amt_ih_h)
+        hidden_ids, detail_rows, _hide_ov = _member_hide_sets(d)
+        bhutan_amt, indian_amt = _amounts_visible_nu(detail_rows, hidden_ids)
         total_amt = bhutan_amt + indian_amt
 
         output = io.StringIO()

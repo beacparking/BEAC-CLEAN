@@ -33,7 +33,7 @@
 
 <div class="member-hide-panel">
     <h2 class="member-hide-panel__title">Hide from member &amp; verify export</h2>
-    <p class="member-hide-panel__lead">Set how many Bhutanese and Indian rows to hide for this date (same rule as the Members page and verify CSV). Leave amounts blank to use the real totals from those hidden rows.</p>
+    <p class="member-hide-panel__lead">Set how many Bhutanese and Indian rows to hide for this date (same vehicles as the Members page and verify CSV). Member and net totals use the real <strong>amount collected</strong> on visible trucks only. Optional Nu fields are kept for your records but do not change displayed totals.</p>
     <form method="POST" action="{{ url_for('stats_member_hide') }}" class="qr-form member-hide-form" id="member-hide-form">
         <input type="hidden" name="date" id="member-hide-date" value="{{ stats_date.isoformat() }}">
         <div class="member-hide-grid">
@@ -122,9 +122,6 @@
             <div class="stats-summary-value">{{ "%.2f"|format(stats.hidden_amount) }}</div>
         </div>
     </div>
-    {% if stats.hidden_amount_show_override_note %}
-    <p class="stats-note">This total is the sum of <strong>amount collected</strong> on the hidden vehicles. Net amounts above use your entered hide Nu ({{ "%.2f"|format(stats.net_subtract_nu) }} total) for the subtraction, which can differ.</p>
-    {% endif %}
 </div>
 {% endif %}
 </div>
