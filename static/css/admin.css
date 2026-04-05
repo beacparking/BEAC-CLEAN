@@ -412,6 +412,13 @@ hr {
     border-top: 1px solid var(--dash-border-subtle);
 }
 
+/* Vehicle statistics: first equation row (no top rule above it) */
+.stats-vehicle-equation.members-amount-equation {
+    margin-top: 0;
+    padding-top: 0;
+    border-top: none;
+}
+
 .members-amount-card {
     flex: 1 1 140px;
     min-width: 0;
