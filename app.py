@@ -188,6 +188,29 @@ def _amount_subtract_for_members(override, detail_rows, hidden_ids):
     return amt_bh_hid, amt_ih_hid
 
 
+def _member_hide_sets(for_date):
+    """Hidden vehicle ids for a date using DB override or automatic ramp (same as members / verify)."""
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        SELECT id, truck_type, daily_token, load_type, amount_collected
+        FROM vehicle_qr
+        WHERE generated_date = %s
+        ORDER BY truck_type, daily_token
+        """,
+        (for_date,),
+    )
+    detail_rows = cur.fetchall()
+    conn.close()
+    n_bh = sum(1 for r in detail_rows if r[1] == "Bhutanese")
+    n_in = sum(1 for r in detail_rows if r[1] == "Indian")
+    ov = _fetch_member_hide_override(for_date)
+    hb, hi = _resolve_hide_counts(n_bh, n_in, for_date, ov)
+    hidden_ids = _hidden_vehicle_ids_from_rows(detail_rows, hb, hi)
+    return hidden_ids, detail_rows, ov
+
+
 # ======================
 # LOGIN
 # ======================
@@ -658,12 +681,19 @@ def stats():
     amt_bh_h, amt_ih_h = _amount_subtract_for_members(hide_ov, detail_rows, hid)
     hidden_amount = amt_bh_h + amt_ih_h
 
+    bhutan_sub = sum(1 for r in detail_rows if r[0] in hid and r[1] == "Bhutanese")
+    indian_sub = sum(1 for r in detail_rows if r[0] in hid and r[1] == "Indian")
+    bhutan_visible = max(0, bhutanese - bhutan_sub)
+    indian_visible = max(0, indian_count - indian_sub)
+    amt_bhutan_net = max(0.0, amt_bhutan - amt_bh_h)
+    amt_indian_net = max(0.0, amt_indian - amt_ih_h)
+
     stats_data = {
-        "bhutanese": bhutanese,
-        "indian": indian_count,
-        "total": total,
-        "amounts_bhutanese": {"total": amt_bhutan},
-        "amounts_indian": {"total": amt_indian},
+        "bhutanese": bhutan_visible,
+        "indian": indian_visible,
+        "total": bhutan_visible + indian_visible,
+        "amounts_bhutanese": {"total": amt_bhutan_net},
+        "amounts_indian": {"total": amt_indian_net},
         "hidden_count": hidden_count,
         "hidden_amount": hidden_amount,
     }
@@ -849,7 +879,7 @@ def members():
 
 @app.route("/stats/export")
 def stats_export():
-    if not session.get("stats_logged_in"):
+    if not (session.get("stats_logged_in") or session.get("logged_in")):
         return redirect(url_for("login"))
 
     date_str = request.args.get("date")
@@ -860,25 +890,18 @@ def stats_export():
     summary = request.args.get("summary")
     only_150 = request.args.get("only_150") or request.args.get("only_200")
 
-    # Summary CSV: single row with total / Bhutanese / Indian amounts
+    # Summary CSV: amounts after same hide rules as Members / verify export
     if summary == "1":
-        conn = get_db()
-        cur = conn.cursor()
-        cur.execute(
-            """
-            SELECT
-              COALESCE(SUM(CASE WHEN truck_type = 'Bhutanese' THEN amount_collected END), 0) AS bhutanese_amount,
-              COALESCE(SUM(CASE WHEN truck_type = 'Indian' THEN amount_collected END), 0) AS indian_amount
-            FROM vehicle_qr
-            WHERE generated_date = %s
-            """,
-            (d,),
+        hidden_ids, detail_rows, hide_ov = _member_hide_sets(d)
+        amt_bhutan = sum(
+            float(r[4] or 0) for r in detail_rows if r[1] == "Bhutanese"
         )
-        row = cur.fetchone()
-        conn.close()
-
-        bhutan_amt = float(row[0] or 0)
-        indian_amt = float(row[1] or 0)
+        amt_indian = sum(float(r[4] or 0) for r in detail_rows if r[1] == "Indian")
+        amt_bh_h, amt_ih_h = _amount_subtract_for_members(
+            hide_ov, detail_rows, hidden_ids
+        )
+        bhutan_amt = max(0.0, amt_bhutan - amt_bh_h)
+        indian_amt = max(0.0, amt_indian - amt_ih_h)
         total_amt = bhutan_amt + indian_amt
 
         output = io.StringIO()
@@ -895,8 +918,9 @@ def stats_export():
             download_name=f"stats_summary_{d}.csv",
         )
 
-    # CSV of vehicles hidden from members/stats (7 Bhutan + 8 India when enough trucks today)
+    # CSV listing rows hidden from members / verify (override or automatic ramp)
     if only_150 == "1":
+        hidden_ids, _, _ = _member_hide_sets(d)
         conn = get_db()
         cur = conn.cursor()
         cur.execute(
@@ -910,11 +934,7 @@ def stats_export():
         )
         rows_all = cur.fetchall()
         conn.close()
-        detail = [(r[0], r[1], r[2], r[3], r[4]) for r in rows_all]
-        n_bh = sum(1 for r in rows_all if r[1] == "Bhutanese")
-        n_in = sum(1 for r in rows_all if r[1] == "Indian")
-        hide_bh, hide_ih = _ramped_hide_counts_today(n_bh, n_in, d)
-        hidden = _hidden_vehicle_ids_from_rows(detail, hide_bh, hide_ih)
+        hidden = hidden_ids
         bhutan_out = sorted(
             [r for r in rows_all if r[0] in hidden and r[1] == "Bhutanese"],
             key=lambda r: r[2],
@@ -943,10 +963,12 @@ def stats_export():
             download_name=f"stats_hidden_display_{d}.csv",
         )
 
+    hidden_ids, _, _ = _member_hide_sets(d)
+
     conn = get_db()
     cur = conn.cursor()
     query = """
-        SELECT daily_token, vehicle_number, truck_type, load_type, ticket_number, amount_collected, generated_date, expires_date
+        SELECT id, daily_token, vehicle_number, truck_type, load_type, ticket_number, amount_collected, generated_date, expires_date
         FROM vehicle_qr
         WHERE generated_date = %s
     """
@@ -957,8 +979,9 @@ def stats_export():
     query += " ORDER BY daily_token"
 
     cur.execute(query, tuple(params))
-    rows = cur.fetchall()
+    rows = [r for r in cur.fetchall() if r[0] not in hidden_ids]
     conn.close()
+    rows = [r[1:] for r in rows]
 
     if truck_type == "Bhutanese":
         filename = f"stats_{d}_bhutanese.csv"
