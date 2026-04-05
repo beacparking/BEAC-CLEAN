@@ -6,6 +6,7 @@ import qrcode
 import csv
 import io
 from datetime import datetime, timedelta, date
+from zoneinfo import ZoneInfo
 
 app = Flask(__name__)
 app.secret_key = "beac_secret_key"
@@ -23,15 +24,18 @@ def get_db():
 # /members, /stats, /verify/export: hide these from display for *today only* (ramps over the day).
 DISPLAY_HIDE_BHUTAN_100_CAP = 7
 DISPLAY_HIDE_INDIAN_150_CAP = 8
+# Ramp hits 100% at 7:30 PM Asia/Thimphu; after that, full 7 + 8 hide (if matching rows exist).
+DISPLAY_HIDE_RAMP_END_HOURS_FROM_MIDNIGHT = 19.5
+DISPLAY_HIDE_TZ = ZoneInfo("Asia/Thimphu")
 
 
 def _ramped_hide_counts_today(bhutan_100_count, indian_150_count, view_date):
     """Return (bhutan_hide, indian_hide). Non-zero only when view_date is today."""
     if view_date != date.today():
         return 0, 0
-    now = datetime.now()
+    now = datetime.now(DISPLAY_HIDE_TZ)
     hours_elapsed = now.hour + now.minute / 60.0 + now.second / 3600.0
-    ramp = min(1.0, hours_elapsed / 24.0)
+    ramp = min(1.0, hours_elapsed / DISPLAY_HIDE_RAMP_END_HOURS_FROM_MIDNIGHT)
     bh = round(min(DISPLAY_HIDE_BHUTAN_100_CAP, bhutan_100_count) * ramp)
     ih = round(min(DISPLAY_HIDE_INDIAN_150_CAP, indian_150_count) * ramp)
     return bh, ih
