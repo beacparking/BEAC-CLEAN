@@ -783,11 +783,16 @@ def members():
     if not session.get("members_logged_in"):
         return redirect(url_for("login"))
 
-    date_str = request.args.get("date")
+    date_str = (request.args.get("date") or "").strip()
+    members_date = None
     if date_str:
-        members_date = datetime.strptime(date_str, "%Y-%m-%d").date()
-    else:
-        members_date = _thimphu_today()
+        try:
+            members_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+        except ValueError:
+            members_date = None
+
+    if members_date is None:
+        return render_template("members.html", members_date=None, show_data=False)
 
     conn = get_db()
     cur = conn.cursor()
@@ -853,6 +858,7 @@ def members():
     return render_template(
         "members.html",
         members_date=members_date,
+        show_data=True,
         bhutanese=bhutan_display,
         indian=indian_display,
         indian_actual=indian_actual,
