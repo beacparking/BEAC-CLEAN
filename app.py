@@ -776,15 +776,8 @@ def stats_member_hide():
 
 
 # ======================
-# BEA MEMBERS (weekly view: Mon–Sun week containing selected date; per-day hide rules)
+# BEA MEMBERS (per-day hide rules from Statistics)
 # ======================
-def _week_range_mon_sun(anchor: date):
-    """Monday-start week containing anchor (ISO weekday: Mon=0)."""
-    start = anchor - timedelta(days=anchor.weekday())
-    end = start + timedelta(days=6)
-    return start, end
-
-
 @app.route("/members", methods=["GET"])
 def members():
     if not session.get("members_logged_in"):
@@ -796,72 +789,78 @@ def members():
     else:
         members_date = _thimphu_today()
 
-    week_start, week_end = _week_range_mon_sun(members_date)
-
     conn = get_db()
     cur = conn.cursor()
     cur.execute(
         """
-        SELECT id, truck_type, daily_token, load_type, amount_collected, generated_date
+        SELECT truck_type, COUNT(*)
         FROM vehicle_qr
-        WHERE generated_date >= %s AND generated_date <= %s
-        ORDER BY generated_date, truck_type, daily_token
+        WHERE generated_date = %s
+        GROUP BY truck_type
         """,
-        (week_start, week_end),
+        (members_date,),
+    )
+    rows = cur.fetchall()
+
+    bhutanese = 0
+    indian_actual = 0
+    for t_type, cnt in rows:
+        if t_type == "Bhutanese":
+            bhutanese = cnt
+        elif t_type == "Indian":
+            indian_actual = cnt
+
+    cur.execute(
+        """
+        SELECT id, truck_type, daily_token, load_type, amount_collected
+        FROM vehicle_qr
+        WHERE generated_date = %s
+        ORDER BY truck_type, daily_token
+        """,
+        (members_date,),
     )
     member_detail_rows = cur.fetchall()
     conn.close()
 
-    by_day = {}
-    for r in member_detail_rows:
-        d = r[5]
-        if d not in by_day:
-            by_day[d] = []
-        by_day[d].append(r)
+    hide_ov = _fetch_member_hide_override(members_date)
+    bhutan_hide_n, indian_hide_n = _resolve_hide_counts(
+        bhutanese, indian_actual, members_date, hide_ov
+    )
+    hidden_ids = _hidden_vehicle_ids_from_rows(
+        member_detail_rows, bhutan_hide_n, indian_hide_n
+    )
+    bhutan_sub = sum(
+        1
+        for r in member_detail_rows
+        if r[0] in hidden_ids and r[1] == "Bhutanese"
+    )
+    indian_sub = sum(
+        1
+        for r in member_detail_rows
+        if r[0] in hidden_ids and r[1] == "Indian"
+    )
 
-    bhutan_display = 0
-    indian_display = 0
-    amount_bhutanese_display = 0.0
-    amount_indian_display = 0.0
-    amount_subtracted = 0.0
+    bhutan_display = max(0, bhutanese - bhutan_sub)
+    indian_display = max(0, indian_actual - indian_sub)
 
-    for d in sorted(by_day.keys()):
-        day_rows = by_day[d]
-        bhutanese = sum(1 for r in day_rows if r[1] == "Bhutanese")
-        indian_actual = sum(1 for r in day_rows if r[1] == "Indian")
-        detail = [(r[0], r[1], r[2], r[3], r[4]) for r in day_rows]
-        hide_ov = _fetch_member_hide_override(d)
-        bhutan_hide_n, indian_hide_n = _resolve_hide_counts(
-            bhutanese, indian_actual, d, hide_ov
-        )
-        hidden_ids = _hidden_vehicle_ids_from_rows(
-            detail, bhutan_hide_n, indian_hide_n
-        )
-        amt_bh_hid, amt_ih_hid = _amount_hidden_by_type(day_rows, hidden_ids)
-        amount_subtracted += amt_bh_hid + amt_ih_hid
-        ab, ai = _amounts_visible_nu(day_rows, hidden_ids)
-        amount_bhutanese_display += ab
-        amount_indian_display += ai
-        bhutan_display += sum(
-            1 for r in day_rows if r[0] not in hidden_ids and r[1] == "Bhutanese"
-        )
-        indian_display += sum(
-            1 for r in day_rows if r[0] not in hidden_ids and r[1] == "Indian"
-        )
-
+    amt_bh_hid, amt_ih_hid = _amount_hidden_by_type(member_detail_rows, hidden_ids)
+    amount_subtracted = amt_bh_hid + amt_ih_hid
+    amount_bhutanese_display, amount_indian_display = _amounts_visible_nu(
+        member_detail_rows, hidden_ids
+    )
     amount_total_display = amount_bhutanese_display + amount_indian_display
 
     return render_template(
         "members.html",
         members_date=members_date,
-        week_start=week_start,
-        week_end=week_end,
         bhutanese=bhutan_display,
         indian=indian_display,
+        indian_actual=indian_actual,
         amount_total=amount_total_display,
         amount_bhutanese=amount_bhutanese_display,
         amount_indian=amount_indian_display,
         amount_subtracted=amount_subtracted,
+        subtraction=indian_sub,
     )
 
 
