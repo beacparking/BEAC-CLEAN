@@ -776,8 +776,15 @@ def stats_member_hide():
 
 
 # ======================
-# BEA MEMBERS (today only: hide 7 Bhutan + 8 India trucks; prefer @100/@150 Nu when picking rows)
+# BEA MEMBERS (weekly view: Mon–Sun week containing selected date; per-day hide rules)
 # ======================
+def _week_range_mon_sun(anchor: date):
+    """Monday-start week containing anchor (ISO weekday: Mon=0)."""
+    start = anchor - timedelta(days=anchor.weekday())
+    end = start + timedelta(days=6)
+    return start, end
+
+
 @app.route("/members", methods=["GET"])
 def members():
     if not session.get("members_logged_in"):
@@ -789,88 +796,72 @@ def members():
     else:
         members_date = _thimphu_today()
 
+    week_start, week_end = _week_range_mon_sun(members_date)
+
     conn = get_db()
     cur = conn.cursor()
     cur.execute(
         """
-        SELECT truck_type, COUNT(*)
+        SELECT id, truck_type, daily_token, load_type, amount_collected, generated_date
         FROM vehicle_qr
-        WHERE generated_date = %s
-        GROUP BY truck_type
+        WHERE generated_date >= %s AND generated_date <= %s
+        ORDER BY generated_date, truck_type, daily_token
         """,
-        (members_date,),
-    )
-    rows = cur.fetchall()
-
-    bhutanese = 0
-    indian_actual = 0
-    for t_type, cnt in rows:
-        if t_type == "Bhutanese":
-            bhutanese = cnt
-        elif t_type == "Indian":
-            indian_actual = cnt
-
-    # Row-level data for hide selection (8 Indian + 7 Bhutan when enough trucks exist today)
-    cur.execute(
-        """
-        SELECT id, truck_type, daily_token, load_type, amount_collected
-        FROM vehicle_qr
-        WHERE generated_date = %s
-        ORDER BY truck_type, daily_token
-        """,
-        (members_date,),
+        (week_start, week_end),
     )
     member_detail_rows = cur.fetchall()
-
-    # Amounts collected for selected date
-    cur.execute(
-        """
-        SELECT
-          COALESCE(SUM(amount_collected), 0),
-          COALESCE(SUM(CASE WHEN truck_type = 'Bhutanese' THEN amount_collected END), 0),
-          COALESCE(SUM(CASE WHEN truck_type = 'Indian' THEN amount_collected END), 0)
-        FROM vehicle_qr
-        WHERE generated_date = %s
-        """,
-        (members_date,),
-    )
-    amt_row = cur.fetchone()
-    amount_total = float(amt_row[0] or 0)
-    amount_bhutanese = float(amt_row[1] or 0)
-    amount_indian = float(amt_row[2] or 0)
     conn.close()
 
-    hide_ov = _fetch_member_hide_override(members_date)
-    bhutan_hide_n, indian_hide_n = _resolve_hide_counts(
-        bhutanese, indian_actual, members_date, hide_ov
-    )
-    hidden_ids = _hidden_vehicle_ids_from_rows(
-        member_detail_rows, bhutan_hide_n, indian_hide_n
-    )
-    bhutan_sub = sum(1 for r in member_detail_rows if r[0] in hidden_ids and r[1] == "Bhutanese")
-    indian_sub = sum(1 for r in member_detail_rows if r[0] in hidden_ids and r[1] == "Indian")
+    by_day = {}
+    for r in member_detail_rows:
+        d = r[5]
+        if d not in by_day:
+            by_day[d] = []
+        by_day[d].append(r)
 
-    bhutan_display = max(0, bhutanese - bhutan_sub)
-    indian_display = max(0, indian_actual - indian_sub)
+    bhutan_display = 0
+    indian_display = 0
+    amount_bhutanese_display = 0.0
+    amount_indian_display = 0.0
+    amount_subtracted = 0.0
 
-    amt_bh_hid, amt_ih_hid = _amount_hidden_by_type(member_detail_rows, hidden_ids)
-    amount_subtracted = amt_bh_hid + amt_ih_hid
-    amount_bhutanese_display, amount_indian_display = _amounts_visible_nu(
-        member_detail_rows, hidden_ids
-    )
+    for d in sorted(by_day.keys()):
+        day_rows = by_day[d]
+        bhutanese = sum(1 for r in day_rows if r[1] == "Bhutanese")
+        indian_actual = sum(1 for r in day_rows if r[1] == "Indian")
+        detail = [(r[0], r[1], r[2], r[3], r[4]) for r in day_rows]
+        hide_ov = _fetch_member_hide_override(d)
+        bhutan_hide_n, indian_hide_n = _resolve_hide_counts(
+            bhutanese, indian_actual, d, hide_ov
+        )
+        hidden_ids = _hidden_vehicle_ids_from_rows(
+            detail, bhutan_hide_n, indian_hide_n
+        )
+        amt_bh_hid, amt_ih_hid = _amount_hidden_by_type(day_rows, hidden_ids)
+        amount_subtracted += amt_bh_hid + amt_ih_hid
+        ab, ai = _amounts_visible_nu(day_rows, hidden_ids)
+        amount_bhutanese_display += ab
+        amount_indian_display += ai
+        bhutan_display += sum(
+            1 for r in day_rows if r[0] not in hidden_ids and r[1] == "Bhutanese"
+        )
+        indian_display += sum(
+            1 for r in day_rows if r[0] not in hidden_ids and r[1] == "Indian"
+        )
+
     amount_total_display = amount_bhutanese_display + amount_indian_display
 
     return render_template(
         "members.html",
         members_date=members_date,
+        week_start=week_start,
+        week_end=week_end,
         bhutanese=bhutan_display,
         indian=indian_display,
-        indian_actual=indian_actual,
         amount_total=amount_total_display,
         amount_bhutanese=amount_bhutanese_display,
         amount_indian=amount_indian_display,
         amount_subtracted=amount_subtracted,
-        subtraction=indian_sub,
     )
 
 

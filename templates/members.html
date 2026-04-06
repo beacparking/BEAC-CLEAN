@@ -22,39 +22,40 @@
 <div class="page">
 
 <h1>BEA Members</h1>
-<p class="page-lead">Daily Bhutan and India truck counts and amounts for the selected date.</p>
+<p class="page-lead">Bhutan and India truck counts and amounts for the <strong>calendar week</strong> (Monday–Sunday) that contains the date you pick.</p>
 
 <div class="dash-card">
 <form method="GET" class="qr-form">
-    <label>Select date</label>
-    <input type="date" name="date" value="{{ members_date.isoformat() }}" required>
-    <button type="submit">Show</button>
+    <label for="members-week-date">Pick any day in the week</label>
+    <input type="date" name="date" id="members-week-date" value="{{ members_date.isoformat() }}" required>
+    <button type="submit">Show week</button>
 </form>
+<p class="stats-note">Showing <strong>{{ week_start.strftime('%d %b %Y') }}</strong> – <strong>{{ week_end.strftime('%d %b %Y') }}</strong> (visible totals only; same hide rules as Statistics, applied per day).</p>
 
 <div class="qr-box">
     <div class="stats-summary">
         <div>
-            <div class="stats-summary-label">Bhutan trucks</div>
+            <div class="stats-summary-label">Bhutan trucks (week)</div>
             <div class="stats-summary-value">{{ bhutanese }}</div>
         </div>
         <div>
-            <div class="stats-summary-label">India trucks</div>
+            <div class="stats-summary-label">India trucks (week)</div>
             <div class="stats-summary-value">{{ indian }}</div>
         </div>
     </div>
     <div class="members-amount-equation" role="group" aria-label="Amount breakdown">
         <div class="members-amount-card">
-            <div class="stats-summary-label">Amount from Bhutanese (Nu)</div>
+            <div class="stats-summary-label">Amount from Bhutanese (Nu, week)</div>
             <div class="stats-summary-value">{{ "%.2f"|format(amount_bhutanese) }}</div>
         </div>
         <span class="members-amount-op" aria-hidden="true">+</span>
         <div class="members-amount-card">
-            <div class="stats-summary-label">Amount from Indian (Nu)</div>
+            <div class="stats-summary-label">Amount from Indian (Nu, week)</div>
             <div class="stats-summary-value">{{ "%.2f"|format(amount_indian) }}</div>
         </div>
         <span class="members-amount-op" aria-hidden="true">=</span>
         <div class="members-amount-card members-amount-card--total">
-            <div class="stats-summary-label">Total amount collected (Nu)</div>
+            <div class="stats-summary-label">Total amount collected (Nu, week)</div>
             <div class="stats-summary-value">{{ "%.2f"|format(amount_total) }}</div>
         </div>
     </div>
