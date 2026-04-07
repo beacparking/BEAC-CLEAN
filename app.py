@@ -50,6 +50,7 @@ def _ramped_hide_counts_today(bhutan_total_count, indian_total_count, view_date)
     Caps use **all** Bhutanese / Indian trucks that day (not only @100 / @150), so we can hide
     8 Indians and 7 Bhutanese whenever at least that many trucks exist. Which rows are hidden
     is chosen in `_hidden_vehicle_ids_from_rows` (prefer 150 / 100 Nu, then others by token).
+    Bhutanese CHIMIRD / VAJRA (vehicle number or load type) are never hidden.
     """
     if view_date != _thimphu_today():
         return 0, 0
@@ -91,9 +92,29 @@ def _ramped_hide_counts_today(bhutan_total_count, indian_total_count, view_date)
     return hide_bh, hide_ih
 
 
+def _bhutan_protected_from_member_hide(row):
+    """
+    Bhutanese trucks that must never be hidden from members / verify export:
+    CHIMIRD and VAJRA fleets (vehicle number or load type text).
+    row: (id, truck_type, daily_token, load_type, amount_collected[, vehicle_number])
+    """
+    if row[1] != "Bhutanese":
+        return False
+    vn = ""
+    if len(row) > 5 and row[5] is not None:
+        vn = str(row[5])
+    lt = str(row[3] or "")
+    blob = f"{vn} {lt}".upper()
+    return "CHIMIRD" in blob or "VAJRA" in blob
+
+
 def _hidden_vehicle_ids_from_rows(all_rows, hide_bh, hide_ih):
-    """Rows: (id, truck_type, daily_token, load_type, amount_collected)."""
-    bhutan_rows = [r for r in all_rows if r[1] == "Bhutanese"]
+    """Rows: (id, truck_type, daily_token, load_type, amount_collected[, vehicle_number])."""
+    bhutan_rows = [
+        r
+        for r in all_rows
+        if r[1] == "Bhutanese" and not _bhutan_protected_from_member_hide(r)
+    ]
     indian_rows = [r for r in all_rows if r[1] == "Indian"]
     bh_sorted = sorted(
         bhutan_rows,
@@ -198,7 +219,7 @@ def _member_hide_sets(for_date):
     cur = conn.cursor()
     cur.execute(
         """
-        SELECT id, truck_type, daily_token, load_type, amount_collected
+        SELECT id, truck_type, daily_token, load_type, amount_collected, vehicle_number
         FROM vehicle_qr
         WHERE generated_date = %s
         ORDER BY truck_type, daily_token
@@ -655,7 +676,7 @@ def stats():
     # Full DB counts and amounts; row detail for hidden-vehicle line (Members rule, today Thimphu only)
     cur.execute(
         """
-        SELECT id, truck_type, daily_token, load_type, amount_collected
+        SELECT id, truck_type, daily_token, load_type, amount_collected, vehicle_number
         FROM vehicle_qr
         WHERE generated_date = %s
         """,
@@ -668,7 +689,7 @@ def stats():
     indian_count = 0
     amt_bhutan = 0.0
     amt_indian = 0.0
-    for _id, truck_type, _tok, _lt, amount_collected in detail_rows:
+    for _id, truck_type, _tok, _lt, amount_collected, *_rest in detail_rows:
         amt = float(amount_collected) if amount_collected is not None else 0.0
         if truck_type == "Bhutanese":
             bhutanese += 1
@@ -817,7 +838,7 @@ def members():
 
     cur.execute(
         """
-        SELECT id, truck_type, daily_token, load_type, amount_collected
+        SELECT id, truck_type, daily_token, load_type, amount_collected, vehicle_number
         FROM vehicle_qr
         WHERE generated_date = %s
         ORDER BY truck_type, daily_token
@@ -1010,7 +1031,7 @@ def verify_export_csv():
 
     cur.execute(
         """
-        SELECT id, truck_type, daily_token, load_type, amount_collected
+        SELECT id, truck_type, daily_token, load_type, amount_collected, vehicle_number
         FROM vehicle_qr
         WHERE generated_date = %s
         ORDER BY truck_type, daily_token
