@@ -22,12 +22,12 @@
 <div class="page">
 
 <h1>BEA Members</h1>
-<p class="page-lead">Bhutan and India truck counts and amounts for <strong>the date you choose</strong> (today is not shown until you select it).</p>
+<p class="page-lead">Bhutan and India truck counts and amounts for a <strong>past day you select</strong>. Today and future dates are not shown here.</p>
 
 <div class="dash-card">
 <form method="GET" class="qr-form">
     <label for="members-date">Select date</label>
-    <input type="date" name="date" id="members-date" value="{% if members_date %}{{ members_date.isoformat() }}{% endif %}" required>
+    <input type="date" name="date" id="members-date" value="{% if members_date %}{{ members_date.isoformat() }}{% endif %}" max="{{ members_max_date }}" required>
     <button type="submit">Show</button>
 </form>
 
@@ -60,8 +60,10 @@
         </div>
     </div>
 </div>
+{% elif today_not_allowed %}
+<p class="stats-note">Totals for <strong>today</strong> (and any future date) are not available on this page. Choose a past day up to {{ members_max_date }}.</p>
 {% else %}
-<p class="stats-note">Pick a date above, then click <strong>Show</strong>, to load that day’s figures (including if that day is today).</p>
+<p class="stats-note">Pick a past date, then click <strong>Show</strong>, to load that day’s figures.</p>
 {% endif %}
 </div>
 

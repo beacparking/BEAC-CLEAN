@@ -812,8 +812,25 @@ def members():
         except ValueError:
             members_date = None
 
+    today_th = _thimphu_today()
+    members_max_date = (today_th - timedelta(days=1)).isoformat()
+
     if members_date is None:
-        return render_template("members.html", members_date=None, show_data=False)
+        return render_template(
+            "members.html",
+            members_date=None,
+            show_data=False,
+            members_max_date=members_max_date,
+        )
+
+    if members_date >= today_th:
+        return render_template(
+            "members.html",
+            members_date=members_date,
+            show_data=False,
+            today_not_allowed=True,
+            members_max_date=members_max_date,
+        )
 
     conn = get_db()
     cur = conn.cursor()
@@ -880,6 +897,7 @@ def members():
         "members.html",
         members_date=members_date,
         show_data=True,
+        members_max_date=members_max_date,
         bhutanese=bhutan_display,
         indian=indian_display,
         indian_actual=indian_actual,
