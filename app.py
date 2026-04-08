@@ -683,7 +683,34 @@ def stats():
         (stats_date,),
     )
     detail_rows = cur.fetchall()
+
+    cur.execute(
+        """
+        SELECT id, truck_type, daily_token, vehicle_number, load_type
+        FROM vehicle_qr
+        WHERE generated_date = %s
+          AND (amount_collected IS NULL OR amount_collected::numeric <= 0)
+        ORDER BY truck_type, daily_token
+        """,
+        (stats_date,),
+    )
+    unpaid_rows = cur.fetchall()
     conn.close()
+
+    unpaid_bhutanese = []
+    unpaid_indian = []
+    for rec_id, t_type, token, vehicle, load_type in unpaid_rows:
+        item = {
+            "id": rec_id,
+            "token": token,
+            "vehicle": vehicle or "",
+            "truck_type": t_type,
+            "load_type": load_type or "",
+        }
+        if t_type == "Bhutanese":
+            unpaid_bhutanese.append(item)
+        elif t_type == "Indian":
+            unpaid_indian.append(item)
 
     bhutanese = 0
     indian_count = 0
@@ -722,6 +749,8 @@ def stats():
         stats=stats_data,
         stats_date=stats_date,
         hide_override=hide_ov,
+        unpaid_bhutanese=unpaid_bhutanese,
+        unpaid_indian=unpaid_indian,
     )
 
 

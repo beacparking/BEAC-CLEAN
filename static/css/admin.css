@@ -634,6 +634,23 @@ hr {
     color: var(--dash-text-muted);
 }
 
+.stats-unpaid-block {
+    margin-top: 22px;
+    padding-top: 18px;
+    border-top: 1px solid var(--dash-border-subtle);
+}
+
+.stats-unpaid-heading {
+    margin: 0 0 6px;
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--dash-accent-blue);
+}
+
+.stats-unpaid-item {
+    cursor: default;
+}
+
 .checkbox-group {
     display: flex;
     gap: 20px;
