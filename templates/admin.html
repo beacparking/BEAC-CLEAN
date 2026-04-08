@@ -19,7 +19,6 @@
     </div>
     <nav class="main-nav">
         <button type="button" class="nav-link active" data-target="token-section">Token</button>
-        <button type="button" class="nav-link" data-target="csv-section">Excel</button>
         <button type="button" class="nav-link" data-target="report-section">Daily report</button>
     </nav>
     <div class="app-header-right">
@@ -32,7 +31,7 @@
 <div class="page">
 
 <h1>Dashboard</h1>
-<p class="page-lead">Generate parking tokens, export Excel files, and review today’s truck counts.</p>
+<p class="page-lead">Generate parking tokens and review today’s truck counts.</p>
 
 <div id="token-section" class="dashboard-section dash-card">
 <form method="POST" class="qr-form" id="token-form">
@@ -199,23 +198,6 @@
 </div>
 </div>  <!-- /token-section -->
 
-<div id="csv-section" class="dashboard-section dash-card hidden">
-<h2>Export Excel</h2>
-
-<div class="export-box">
-    <form action="/admin/export/day" method="get">
-        <label>Select day</label>
-        <input type="date" name="date" required>
-        <select name="truck_type">
-            <option value="">All Trucks</option>
-            <option value="Bhutanese">Bhutan Trucks</option>
-            <option value="Indian">India Trucks</option>
-        </select>
-        <button type="submit">Download Excel</button>
-    </form>
-</div>
-</div>  <!-- /excel-section (id csv-section for tabs) -->
-
 <div id="report-section" class="dashboard-section dash-card hidden">
 <h2>Daily report (today)</h2>
 
@@ -307,16 +289,17 @@
         const links = document.querySelectorAll('.main-nav .nav-link');
         const sections = {
             'token-section': document.getElementById('token-section'),
-            'csv-section': document.getElementById('csv-section'),
             'report-section': document.getElementById('report-section')
         };
 
         function setActiveTab(target) {
             Object.keys(sections).forEach(key => {
+                const el = sections[key];
+                if (!el) return;
                 if (key === target) {
-                    sections[key].classList.remove('hidden');
+                    el.classList.remove('hidden');
                 } else {
-                    sections[key].classList.add('hidden');
+                    el.classList.add('hidden');
                 }
             });
 
@@ -329,12 +312,11 @@
             });
         }
 
-        // Initial tab based on query param (?tab=report-section)
+        // Initial tab: ?tab=report-section (legacy ?tab=csv-section opens Token)
         const params = new URLSearchParams(window.location.search);
-        const initialTab = params.get('tab') || 'token-section';
-        if (sections[initialTab]) {
-            setActiveTab(initialTab);
-        }
+        let initialTab = params.get('tab') || 'token-section';
+        if (!sections[initialTab]) initialTab = 'token-section';
+        setActiveTab(initialTab);
 
         links.forEach(link => {
             link.addEventListener('click', () => {
