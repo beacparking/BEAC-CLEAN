@@ -1056,8 +1056,38 @@ def stats_export():
     return export_csv(rows, filename)
 
 
+def _build_protected_verify_xlsx(data_rows):
+    """
+    Build an .xlsx with all cells locked and worksheet protection on (Excel: Review > Unprotect to edit).
+    data_rows: list of (serial, vehicle, load_type, amount) — amount may be float or str.
+    """
+    from openpyxl import Workbook
+    from openpyxl.styles import Protection
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Vehicles"
+    ws.append(["Serial number", "Vehicle number", "Type of load", "Amount"])
+    for sr, vn, lt, amt in data_rows:
+        ws.append([sr, vn, lt, amt])
+
+    nrows = ws.max_row or 1
+    for row in ws.iter_rows(min_row=1, max_row=nrows, min_col=1, max_col=4):
+        for cell in row:
+            cell.protection = Protection(locked=True)
+
+    ws.protection.sheet = True
+    ws.protection.selectLockedCells = True
+    ws.protection.selectUnlockedCells = True
+
+    bio = io.BytesIO()
+    wb.save(bio)
+    bio.seek(0)
+    return bio
+
+
 # ======================
-# VERIFY PAGE: CSV DOWNLOAD (ADD / ADD123)
+# VERIFY PAGE: PROTECTED EXCEL DOWNLOAD (ADD / ADD123)
 # ======================
 @app.route("/verify/export")
 def verify_export_csv():
@@ -1133,23 +1163,32 @@ def verify_export_csv():
             continue
         rows.append((vehicle_number, load_type, amount_collected))
 
-    output = io.StringIO()
-    writer = csv.writer(output)
-    # Serial number instead of token number
-    writer.writerow(["Serial number", "Vehicle number", "Type of load", "Amount"])
+    xlsx_data = []
     for idx, r in enumerate(rows, start=1):
         vehicle_number, load_type, amount_collected = r
-        writer.writerow([
-            str(idx),
-            str(vehicle_number) if vehicle_number is not None else "",
-            str(load_type) if load_type is not None else "",
-            str(amount_collected) if amount_collected is not None else "",
-        ])
+        amt_out = amount_collected
+        if amt_out is not None:
+            try:
+                amt_out = float(amt_out)
+            except (TypeError, ValueError):
+                amt_out = str(amt_out)
+        else:
+            amt_out = ""
+        xlsx_data.append(
+            (
+                idx,
+                str(vehicle_number) if vehicle_number is not None else "",
+                str(load_type) if load_type is not None else "",
+                amt_out,
+            )
+        )
+
+    buf = _build_protected_verify_xlsx(xlsx_data)
     return send_file(
-        io.BytesIO(output.getvalue().encode("utf-8-sig")),
-        mimetype="text/csv",
+        buf,
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         as_attachment=True,
-        download_name=f"vehicles_{d}.csv"
+        download_name=f"vehicles_{d}.xlsx",
     )
 
 
