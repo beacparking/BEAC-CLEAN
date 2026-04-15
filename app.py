@@ -834,32 +834,13 @@ def members():
         return redirect(url_for("login"))
 
     date_str = (request.args.get("date") or "").strip()
-    members_date = None
     if date_str:
         try:
             members_date = datetime.strptime(date_str, "%Y-%m-%d").date()
         except ValueError:
-            members_date = None
-
-    today_th = _thimphu_today()
-    members_max_date = (today_th - timedelta(days=1)).isoformat()
-
-    if members_date is None:
-        return render_template(
-            "members.html",
-            members_date=None,
-            show_data=False,
-            members_max_date=members_max_date,
-        )
-
-    if members_date >= today_th:
-        return render_template(
-            "members.html",
-            members_date=members_date,
-            show_data=False,
-            today_not_allowed=True,
-            members_max_date=members_max_date,
-        )
+            members_date = _thimphu_today()
+    else:
+        members_date = _thimphu_today()
 
     conn = get_db()
     cur = conn.cursor()
@@ -925,8 +906,6 @@ def members():
     return render_template(
         "members.html",
         members_date=members_date,
-        show_data=True,
-        members_max_date=members_max_date,
         bhutanese=bhutan_display,
         indian=indian_display,
         indian_actual=indian_actual,
