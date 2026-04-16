@@ -635,10 +635,13 @@ def admin():
 
     conn.close()
 
+    csv_error = request.args.get("csv_error")
+
     return render_template(
         "admin.html",
         qr=qr,
         error=error,
+        csv_error=csv_error,
         default_date=today,
         search_vehicle=search_vehicle,
         search_rows=search_rows,
@@ -1040,16 +1043,23 @@ def stats_export():
 # ======================
 @app.route("/verify/export")
 def verify_export_csv():
-    if not session.get("export_logged_in"):
+    admin_mode = request.args.get("from_admin") == "1"
+    can_export = session.get("export_logged_in") or session.get("logged_in")
+    if not can_export:
         return redirect(url_for("verify_export"))
+
     date_str = request.args.get("date")
     bhutan = request.args.get("bhutan") == "1"
     indian = request.args.get("indian") == "1"
     if not date_str or (not bhutan and not indian):
+        if admin_mode and session.get("logged_in"):
+            return redirect(url_for("admin", tab="csv-section", csv_error="Select a date and at least one vehicle type."))
         return redirect(url_for("verify_export", error="Select a date and at least one vehicle type."))
     try:
         d = datetime.strptime(date_str, "%Y-%m-%d").date()
     except ValueError:
+        if admin_mode and session.get("logged_in"):
+            return redirect(url_for("admin", tab="csv-section", csv_error="Invalid date."))
         return redirect(url_for("verify_export", error="Invalid date."))
 
     conn = get_db()

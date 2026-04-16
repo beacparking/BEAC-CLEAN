@@ -19,6 +19,7 @@
     </div>
     <nav class="main-nav">
         <button type="button" class="nav-link active" data-target="token-section">Token</button>
+        <button type="button" class="nav-link" data-target="csv-section">Download Excel</button>
         <button type="button" class="nav-link" data-target="report-section">Daily report</button>
     </nav>
     <div class="app-header-right">
@@ -198,6 +199,22 @@
 </div>
 </div>  <!-- /token-section -->
 
+<div id="csv-section" class="dashboard-section dash-card hidden">
+<h2>Download vehicle Excel</h2>
+<form method="GET" action="{{ url_for('verify_export_csv') }}" class="qr-form">
+    <input type="hidden" name="from_admin" value="1">
+    <label>Select date</label>
+    <input type="date" name="date" required>
+    <div class="checkbox-group">
+        <label><input type="checkbox" name="bhutan" value="1"> Bhutan vehicles</label>
+        <label><input type="checkbox" name="indian" value="1"> Indian vehicles</label>
+    </div>
+    {% if csv_error %}<p class="error">{{ csv_error }}</p>{% endif %}
+    <button type="submit">Download Excel</button>
+</form>
+<p class="verify-csv-note">Excel file columns: Serial number, Vehicle number, Type of load, Amount.</p>
+</div>  <!-- /csv-section -->
+
 <div id="report-section" class="dashboard-section dash-card hidden">
 <h2>Daily report (today)</h2>
 
@@ -289,6 +306,7 @@
         const links = document.querySelectorAll('.main-nav .nav-link');
         const sections = {
             'token-section': document.getElementById('token-section'),
+            'csv-section': document.getElementById('csv-section'),
             'report-section': document.getElementById('report-section')
         };
 
@@ -312,7 +330,7 @@
             });
         }
 
-        // Initial tab: ?tab=report-section (legacy ?tab=csv-section opens Token)
+        // Initial tab based on ?tab=token-section|csv-section|report-section
         const params = new URLSearchParams(window.location.search);
         let initialTab = params.get('tab') || 'token-section';
         if (!sections[initialTab]) initialTab = 'token-section';
