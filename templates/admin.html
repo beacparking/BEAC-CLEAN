@@ -20,6 +20,7 @@
     <nav class="main-nav">
         <button type="button" class="nav-link active" data-target="token-section">Token</button>
         <button type="button" class="nav-link" data-target="csv-section">Download Excel</button>
+        <button type="button" class="nav-link" data-target="unpaid-section">Unpaid</button>
         <button type="button" class="nav-link" data-target="report-section">Daily report</button>
     </nav>
     <div class="app-header-right">
@@ -32,7 +33,7 @@
 <div class="page">
 
 <h1>Dashboard</h1>
-<p class="page-lead">Generate parking tokens and review today’s truck counts.</p>
+<p class="page-lead">Generate parking tokens, download Excel, look up unpaid vehicles by date, and review today’s truck counts.</p>
 
 <div id="token-section" class="dashboard-section dash-card">
 <form method="POST" class="qr-form" id="token-form">
@@ -215,6 +216,65 @@
 <p class="verify-csv-note">Excel file columns: Serial number, Vehicle number, Type of load, Amount.</p>
 </div>  <!-- /csv-section -->
 
+<div id="unpaid-section" class="dashboard-section dash-card hidden">
+<h2>Unpaid vehicles (by date)</h2>
+<p class="stats-note">Shows trucks with amount collected <strong>0</strong> or <strong>blank</strong> for the day you pick.</p>
+<form method="GET" class="qr-form">
+    <input type="hidden" name="tab" value="unpaid-section">
+    <label for="admin-unpaid-date">Select date</label>
+    <input type="date" name="unpaid_date" id="admin-unpaid-date" value="{% if unpaid_lookup_date %}{{ unpaid_lookup_date.isoformat() }}{% endif %}" required>
+    <button type="submit">Show</button>
+</form>
+
+{% if unpaid_lookup_date %}
+<p class="stats-note" style="margin-top: 12px;"><b>Date:</b> {{ unpaid_lookup_date.strftime('%d-%m-%Y') }}</p>
+<div class="unpaid-section">
+    <div class="unpaid-column">
+        <h3>Bhutanese — unpaid</h3>
+        {% if unpaid_date_bhutanese %}
+        <ul class="unpaid-list">
+            {% for item in unpaid_date_bhutanese %}
+            <li class="unpaid-item"
+                data-id="{{ item.id }}"
+                data-token="{{ item.token }}"
+                data-vehicle="{{ item.vehicle }}"
+                data-truck="{{ item.truck_type }}"
+                data-date="{{ item.date.strftime('%Y-%m-%d') }}"
+                data-load="{{ item.load_type }}">
+                Token {{ item.token }} — {{ item.vehicle }}{% if item.load_type %} ({{ item.load_type }}){% endif %}
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p class="unpaid-empty">No unpaid Bhutanese trucks on this date.</p>
+        {% endif %}
+    </div>
+    <div class="unpaid-column">
+        <h3>India — unpaid</h3>
+        {% if unpaid_date_indian %}
+        <ul class="unpaid-list">
+            {% for item in unpaid_date_indian %}
+            <li class="unpaid-item"
+                data-id="{{ item.id }}"
+                data-token="{{ item.token }}"
+                data-vehicle="{{ item.vehicle }}"
+                data-truck="{{ item.truck_type }}"
+                data-date="{{ item.date.strftime('%Y-%m-%d') }}"
+                data-load="{{ item.load_type }}">
+                Token {{ item.token }} — {{ item.vehicle }}{% if item.load_type %} ({{ item.load_type }}){% endif %}
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p class="unpaid-empty">No unpaid India trucks on this date.</p>
+        {% endif %}
+    </div>
+</div>
+{% else %}
+<p class="stats-note" style="margin-top: 12px;">Choose a date and click <strong>Show</strong>.</p>
+{% endif %}
+</div>  <!-- /unpaid-section -->
+
 <div id="report-section" class="dashboard-section dash-card hidden">
 <h2>Daily report (today)</h2>
 
@@ -307,6 +367,7 @@
         const sections = {
             'token-section': document.getElementById('token-section'),
             'csv-section': document.getElementById('csv-section'),
+            'unpaid-section': document.getElementById('unpaid-section'),
             'report-section': document.getElementById('report-section')
         };
 

@@ -633,6 +633,40 @@ def admin():
             )
         search_rows = cur.fetchall()
 
+    unpaid_lookup_date = None
+    unpaid_date_bhutanese = []
+    unpaid_date_indian = []
+    raw_unpaid = (request.args.get("unpaid_date") or "").strip()
+    if raw_unpaid:
+        try:
+            unpaid_lookup_date = datetime.strptime(raw_unpaid, "%Y-%m-%d").date()
+        except ValueError:
+            unpaid_lookup_date = None
+    if unpaid_lookup_date is not None:
+        cur.execute(
+            """
+            SELECT id, truck_type, daily_token, vehicle_number, generated_date, load_type
+            FROM vehicle_qr
+            WHERE generated_date = %s
+              AND (amount_collected IS NULL OR amount_collected::numeric <= 0)
+            ORDER BY truck_type, daily_token
+            """,
+            (unpaid_lookup_date,),
+        )
+        for rec_id, t_type, token, vehicle, gen_date, load_type in cur.fetchall():
+            item = {
+                "id": rec_id,
+                "token": token,
+                "vehicle": vehicle,
+                "truck_type": t_type,
+                "date": gen_date,
+                "load_type": load_type,
+            }
+            if t_type == "Bhutanese":
+                unpaid_date_bhutanese.append(item)
+            elif t_type == "Indian":
+                unpaid_date_indian.append(item)
+
     conn.close()
 
     csv_error = request.args.get("csv_error")
@@ -642,6 +676,9 @@ def admin():
         qr=qr,
         error=error,
         csv_error=csv_error,
+        unpaid_lookup_date=unpaid_lookup_date,
+        unpaid_date_bhutanese=unpaid_date_bhutanese,
+        unpaid_date_indian=unpaid_date_indian,
         default_date=today,
         search_vehicle=search_vehicle,
         search_rows=search_rows,
