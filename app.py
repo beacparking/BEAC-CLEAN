@@ -1277,6 +1277,56 @@ def export_day():
 
     return export_csv(rows, f"daily_{d}.csv")
 
+
+@app.route("/admin/export/unpaid")
+def admin_export_unpaid():
+    """Unpaid vehicles (amount 0 or blank) for a chosen day — CSV for Excel."""
+    if not session.get("logged_in"):
+        return redirect(url_for("login"))
+    date_str = request.args.get("date")
+    if not date_str:
+        return redirect(url_for("admin", tab="unpaid-section"))
+    try:
+        d = datetime.strptime(date_str, "%Y-%m-%d").date()
+    except ValueError:
+        return redirect(url_for("admin", tab="unpaid-section"))
+
+    conn = get_db()
+    cur = conn.cursor()
+    cur.execute(
+        """
+        SELECT truck_type, daily_token, vehicle_number, load_type, generated_date
+        FROM vehicle_qr
+        WHERE generated_date = %s
+          AND (amount_collected IS NULL OR amount_collected::numeric <= 0)
+        ORDER BY truck_type, daily_token
+        """,
+        (d,),
+    )
+    rows = cur.fetchall()
+    conn.close()
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["Date", "Truck type", "Token", "Vehicle number", "Load type", "Status"])
+    for t_type, token, vehicle, load_type, gen_date in rows:
+        writer.writerow(
+            [
+                gen_date.isoformat() if gen_date else "",
+                t_type or "",
+                token if token is not None else "",
+                vehicle if vehicle is not None else "",
+                load_type if load_type is not None else "",
+                "Unpaid",
+            ]
+        )
+    return send_file(
+        io.BytesIO(output.getvalue().encode("utf-8-sig")),
+        mimetype="text/csv",
+        as_attachment=True,
+        download_name=f"unpaid_{d}.csv",
+    )
+
 # ======================
 # EXPORT WEEKLY
 # ======================
