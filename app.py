@@ -1163,14 +1163,18 @@ def verify_export_csv():
     writer = csv.writer(output)
     # Serial number instead of token number
     writer.writerow(["Serial number", "Vehicle number", "Type of load", "Amount"])
+    total_amount = 0.0
     for idx, r in enumerate(rows, start=1):
         vehicle_number, load_type, amount_collected = r
+        if amount_collected is not None:
+            total_amount += float(amount_collected)
         writer.writerow([
             str(idx),
             str(vehicle_number) if vehicle_number is not None else "",
             str(load_type) if load_type is not None else "",
             str(amount_collected) if amount_collected is not None else "",
         ])
+    writer.writerow(["", "", "Total amount collected", f"{total_amount:.2f}"])
     return send_file(
         io.BytesIO(output.getvalue().encode("utf-8-sig")),
         mimetype="text/csv",
