@@ -33,7 +33,7 @@
 
 <div class="member-hide-panel">
     <h2 class="member-hide-panel__title">Hide from member &amp; verify export</h2>
-    <p class="member-hide-panel__lead">Set how many Bhutanese and Indian rows to hide for this date. The <strong>Members</strong> page and <strong>verify CSV</strong> show only visible trucks and their Nu. The summary cards below stay <strong>full database</strong> totals; the last row shows what is hidden from members.</p>
+    <p class="member-hide-panel__lead">Set how many Bhutanese and Indian rows to hide for this date. The <strong>Members</strong> page and <strong>verify CSV</strong> show only visible trucks and their Nu. The summary cards below stay <strong>full database</strong> totals; the last row shows what is hidden from members. <strong>Apply hide</strong> with 0 / 0 means hide nothing; use <strong>Clear override</strong> when you want the automatic (time-based) hide again for today.</p>
     <form method="POST" action="{{ url_for('stats_member_hide') }}" class="qr-form member-hide-form" id="member-hide-form">
         <input type="hidden" name="date" id="member-hide-date" value="{{ stats_date.isoformat() }}">
         <div class="member-hide-grid">

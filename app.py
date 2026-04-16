@@ -203,9 +203,10 @@ def _fetch_member_hide_override(for_date):
 
 
 def _resolve_hide_counts(bhutan_total, indian_total, view_date, override=None):
-    """Manual override from Stats wins when set; else automatic ramp (today Thimphu only)."""
+    """Manual override from Stats wins when a row exists (including explicit 0/0 = hide nothing).
+    If there is no row for this date, use automatic ramp (today Thimphu only)."""
     ov = override if override is not None else _fetch_member_hide_override(view_date)
-    if ov is not None and (ov["bhutan_count"] > 0 or ov["indian_count"] > 0):
+    if ov is not None:
         return (
             min(max(0, ov["bhutan_count"]), bhutan_total),
             min(max(0, ov["indian_count"]), indian_total),
@@ -840,26 +841,22 @@ def stats_member_hide():
     ba = _parse_optional_amount("bhutan_amount")
     ia = _parse_optional_amount("indian_amount")
 
-    if bc == 0 and ic == 0:
-        cur.execute(
-            "DELETE FROM member_hide_override WHERE for_date = %s",
-            (for_date,),
+    # Always persist on Apply (including 0/0) so "hide nothing" is not confused with
+    # "no override" (which uses automatic ramp). Use Clear to remove the row.
+    cur.execute(
+        """
+        INSERT INTO member_hide_override (
+            for_date, bhutan_count, indian_count, bhutan_amount, indian_amount
         )
-    else:
-        cur.execute(
-            """
-            INSERT INTO member_hide_override (
-                for_date, bhutan_count, indian_count, bhutan_amount, indian_amount
-            )
-            VALUES (%s, %s, %s, %s, %s)
-            ON CONFLICT (for_date) DO UPDATE SET
-                bhutan_count = EXCLUDED.bhutan_count,
-                indian_count = EXCLUDED.indian_count,
-                bhutan_amount = EXCLUDED.bhutan_amount,
-                indian_amount = EXCLUDED.indian_amount
-            """,
-            (for_date, bc, ic, ba, ia),
-        )
+        VALUES (%s, %s, %s, %s, %s)
+        ON CONFLICT (for_date) DO UPDATE SET
+            bhutan_count = EXCLUDED.bhutan_count,
+            indian_count = EXCLUDED.indian_count,
+            bhutan_amount = EXCLUDED.bhutan_amount,
+            indian_amount = EXCLUDED.indian_amount
+        """,
+        (for_date, bc, ic, ba, ia),
+    )
     conn.commit()
     conn.close()
     return redirect(url_for("stats", date=for_date.isoformat()))
