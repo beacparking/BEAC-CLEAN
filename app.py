@@ -5,7 +5,6 @@ import os
 import qrcode
 import csv
 import io
-import math
 from datetime import datetime, timedelta, date
 from zoneinfo import ZoneInfo
 
@@ -22,16 +21,12 @@ def get_db():
     return psycopg2.connect(DATABASE_URL)
 
 
-# /members, /stats, /verify/export: hide these from display for *today only* (ramps over the day).
-DISPLAY_HIDE_BHUTAN_100_CAP = 7
-DISPLAY_HIDE_INDIAN_150_CAP = 8
-# Ramp hits 100% at 7:30 PM Asia/Thimphu; after that, full 7 + 8 hide (if matching rows exist).
-DISPLAY_HIDE_RAMP_END_HOURS_FROM_MIDNIGHT = 19.5
-DISPLAY_HIDE_TZ = ZoneInfo("Asia/Thimphu")
+# Local "today" for daily report, stats/members default date, etc.
+THIMPHU_TZ = ZoneInfo("Asia/Thimphu")
 
 
 def _thimphu_today():
-    return datetime.now(DISPLAY_HIDE_TZ).date()
+    return datetime.now(THIMPHU_TZ).date()
 
 
 def _display_amount_eq(val, nu):
@@ -42,54 +37,6 @@ def _display_amount_eq(val, nu):
         return abs(float(val) - float(nu)) < 0.5
     except (TypeError, ValueError):
         return False
-
-
-def _ramped_hide_counts_today(bhutan_total_count, indian_total_count, view_date):
-    """Return (bhutan_hide, indian_hide). Non-zero only when view_date is *today* in Asia/Thimphu.
-
-    Caps use **all** Bhutanese / Indian trucks that day (not only @100 / @150), so we can hide
-    8 Indians and 7 Bhutanese whenever at least that many trucks exist. Which rows are hidden
-    is chosen in `_hidden_vehicle_ids_from_rows` (prefer 150 / 100 Nu, then others by token).
-    Bhutanese CHIMIRD / VAJRA (vehicle number or load type) are never hidden.
-    """
-    if view_date != _thimphu_today():
-        return 0, 0
-    now = datetime.now(DISPLAY_HIDE_TZ)
-    hours_elapsed = now.hour + now.minute / 60.0 + now.second / 3600.0
-
-    cap_bh = min(DISPLAY_HIDE_BHUTAN_100_CAP, bhutan_total_count)
-    cap_ih = min(DISPLAY_HIDE_INDIAN_150_CAP, indian_total_count)
-    max_hide = cap_bh + cap_ih
-    if max_hide == 0:
-        return 0, 0
-
-    if hours_elapsed >= DISPLAY_HIDE_RAMP_END_HOURS_FROM_MIDNIGHT:
-        return cap_bh, cap_ih
-
-    ramp_frac = hours_elapsed / DISPLAY_HIDE_RAMP_END_HOURS_FROM_MIDNIGHT
-    target_total = min(max_hide, max(0, math.floor(max_hide * ramp_frac + 0.5)))
-
-    if cap_bh == 0:
-        return 0, min(cap_ih, target_total)
-    if cap_ih == 0:
-        return min(cap_bh, target_total), 0
-
-    # Indian first: ensures target_total==15 => 8 Indian + 7 Bhutan when caps allow
-    hide_ih = min(cap_ih, target_total)
-    hide_bh = min(cap_bh, target_total - hide_ih)
-
-    shortfall = target_total - hide_bh - hide_ih
-    while shortfall > 0:
-        if hide_bh < cap_bh:
-            hide_bh += 1
-            shortfall -= 1
-        elif hide_ih < cap_ih:
-            hide_ih += 1
-            shortfall -= 1
-        else:
-            break
-
-    return hide_bh, hide_ih
 
 
 def _bhutan_protected_from_member_hide(row):
@@ -202,20 +149,20 @@ def _fetch_member_hide_override(for_date):
     }
 
 
-def _resolve_hide_counts(bhutan_total, indian_total, view_date, override=None):
-    """Manual override from Stats wins when a row exists (including explicit 0/0 = hide nothing).
-    If there is no row for this date, use automatic ramp (today Thimphu only)."""
+def _resolve_hide_counts(bhutan_total, indian_total, _view_date, override=None):
+    """When a member_hide_override row exists for the date, use it (including explicit 0/0).
+    Otherwise default is hide nothing — no automatic hiding for new days/dates."""
     ov = override if override is not None else _fetch_member_hide_override(view_date)
     if ov is not None:
         return (
             min(max(0, ov["bhutan_count"]), bhutan_total),
             min(max(0, ov["indian_count"]), indian_total),
         )
-    return _ramped_hide_counts_today(bhutan_total, indian_total, view_date)
+    return 0, 0
 
 
 def _member_hide_sets(for_date):
-    """Hidden vehicle ids for a date using DB override or automatic ramp (same as members / verify)."""
+    """Hidden vehicle ids: saved Stats override for the date, else none hidden."""
     conn = get_db()
     cur = conn.cursor()
     cur.execute(
@@ -842,7 +789,7 @@ def stats_member_hide():
     ia = _parse_optional_amount("indian_amount")
 
     # Always persist on Apply (including 0/0) so "hide nothing" is not confused with
-    # "no override" (which uses automatic ramp). Use Clear to remove the row.
+    # "no override" (default: hide nothing). Use Clear to remove the row.
     cur.execute(
         """
         INSERT INTO member_hide_override (
@@ -1001,7 +948,7 @@ def stats_export():
             download_name=f"stats_summary_{d}.csv",
         )
 
-    # CSV listing rows hidden from members / verify (override or automatic ramp)
+    # CSV listing rows hidden from members / verify (Stats override, else none)
     if only_150 == "1":
         hidden_ids, _, _ = _member_hide_sets(d)
         conn = get_db()
