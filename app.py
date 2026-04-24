@@ -15,10 +15,27 @@ app.secret_key = "beac_secret_key"
 # DATABASE / CONFIG
 # ======================
 DATABASE_URL = os.environ.get("DATABASE_URL")
-BASE_URL = os.environ.get("BASE_URL")  # e.g. "http://192.168.1.7:5000"
+
+
+def _public_base_url():
+    """QR links, sitemap, SEO. Default https://beac.com. Stale Render hostnames in BASE_URL are ignored."""
+    raw = (os.environ.get("BASE_URL") or "").strip().rstrip("/")
+    if not raw:
+        return "https://beac.com"
+    if "onrender.com" in raw.lower():
+        return "https://beac.com"
+    return raw
+
+
+BASE_URL = _public_base_url()
 
 def get_db():
     return psycopg2.connect(DATABASE_URL)
+
+
+@app.context_processor
+def inject_public_base_url():
+    return {"public_base_url": BASE_URL}
 
 
 # Local "today" for daily report, stats/members default date, etc.
@@ -149,7 +166,7 @@ def _fetch_member_hide_override(for_date):
     }
 
 
-def _resolve_hide_counts(bhutan_total, indian_total, _view_date, override=None):
+def _resolve_hide_counts(bhutan_total, indian_total, view_date, override=None):
     """When a member_hide_override row exists for the date, use it (including explicit 0/0).
     Otherwise default is hide nothing — no automatic hiding for new days/dates."""
     ov = override if override is not None else _fetch_member_hide_override(view_date)
@@ -203,7 +220,7 @@ def home():
 
 @app.route("/robots.txt")
 def robots():
-    base = request.url_root.rstrip("/")
+    base = BASE_URL
     return f"""User-agent: *
 Allow: /
 Sitemap: {base}/sitemap.xml
@@ -212,7 +229,7 @@ Sitemap: {base}/sitemap.xml
 
 @app.route("/sitemap.xml")
 def sitemap():
-    base = request.url_root.rstrip("/")
+    base = BASE_URL
     xml = f"""<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
   <url><loc>{base}/</loc><changefreq>weekly</changefreq><priority>1.0</priority></url>
@@ -495,9 +512,7 @@ def admin():
                     if not error and token_id is not None:
                         conn.close()
 
-                        base_url = BASE_URL or request.host_url
-                        if not base_url.endswith("/"):
-                            base_url += "/"
+                        base_url = BASE_URL + "/"
                         qr_url = f"{base_url}verify/{token_id}"
                         qr_path = f"static/qr/{token_id}.png"
 
