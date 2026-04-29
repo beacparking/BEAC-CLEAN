@@ -361,6 +361,10 @@ def admin():
                     daily_token_update = None
             if not error and not amount_collected:
                 error = "Amount is required to update."
+            if not error and not truck_type:
+                error = "Truck type is required to update."
+            if not error and not load_type:
+                error = "Load type is required to update."
             elif not error:
                 try:
                     if float(amount_collected) > 500:
@@ -375,10 +379,10 @@ def admin():
                     SELECT 1 FROM vehicle_qr v2
                     WHERE v2.generated_date = (SELECT generated_date FROM vehicle_qr WHERE id = %s)
                       AND v2.daily_token = %s
-                      AND v2.truck_type = (SELECT truck_type FROM vehicle_qr WHERE id = %s)
+                      AND v2.truck_type = %s
                       AND v2.id != %s
                     """,
-                    (record_id, daily_token_update, record_id, record_id),
+                    (record_id, daily_token_update, truck_type, record_id),
                 )
                 if cur.fetchone():
                     conn.close()
@@ -390,13 +394,23 @@ def admin():
                         """
                         UPDATE vehicle_qr
                         SET vehicle_number = %s,
+                            truck_type = %s,
+                            load_type = %s,
                             ticket_number = %s,
                             amount_collected = %s,
                             daily_token = %s
                         WHERE id = %s
                         RETURNING vehicle_number, truck_type, load_type, daily_token, expires_date, ticket_number
                         """,
-                        (vehicle, ticket_number, amount_collected, daily_token_update, record_id),
+                        (
+                            vehicle,
+                            truck_type,
+                            load_type,
+                            ticket_number,
+                            amount_collected,
+                            daily_token_update,
+                            record_id,
+                        ),
                     )
                     row = cur.fetchone()
                     conn.commit()
