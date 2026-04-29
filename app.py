@@ -1080,7 +1080,7 @@ def verify_export_csv():
     if bhutan and indian:
         cur.execute(
             """
-            SELECT id, truck_type, daily_token, vehicle_number, load_type, amount_collected
+            SELECT id, truck_type, daily_token, vehicle_number, load_type, ticket_number, amount_collected
             FROM vehicle_qr
             WHERE generated_date = %s
               AND truck_type IN ('Bhutanese', 'Indian')
@@ -1091,7 +1091,7 @@ def verify_export_csv():
     elif bhutan:
         cur.execute(
             """
-            SELECT id, truck_type, daily_token, vehicle_number, load_type, amount_collected
+            SELECT id, truck_type, daily_token, vehicle_number, load_type, ticket_number, amount_collected
             FROM vehicle_qr
             WHERE generated_date = %s AND truck_type = 'Bhutanese'
             ORDER BY daily_token
@@ -1101,7 +1101,7 @@ def verify_export_csv():
     else:
         cur.execute(
             """
-            SELECT id, truck_type, daily_token, vehicle_number, load_type, amount_collected
+            SELECT id, truck_type, daily_token, vehicle_number, load_type, ticket_number, amount_collected
             FROM vehicle_qr
             WHERE generated_date = %s AND truck_type = 'Indian'
             ORDER BY daily_token
@@ -1113,27 +1113,28 @@ def verify_export_csv():
     conn.close()
 
     rows = []
-    for rid, t_type, _tok, vehicle_number, load_type, amount_collected in all_rows:
+    for rid, t_type, _tok, vehicle_number, load_type, ticket_number, amount_collected in all_rows:
         if rid in hidden_ids:
             continue
-        rows.append((vehicle_number, load_type, amount_collected))
+        rows.append((vehicle_number, load_type, ticket_number, amount_collected))
 
     output = io.StringIO()
     writer = csv.writer(output)
     # Serial number instead of token number
-    writer.writerow(["Serial number", "Vehicle number", "Type of load", "Amount"])
+    writer.writerow(["Serial number", "Vehicle number", "Type of load", "Ticket number", "Amount"])
     total_amount = 0.0
     for idx, r in enumerate(rows, start=1):
-        vehicle_number, load_type, amount_collected = r
+        vehicle_number, load_type, ticket_number, amount_collected = r
         if amount_collected is not None:
             total_amount += float(amount_collected)
         writer.writerow([
             str(idx),
             str(vehicle_number) if vehicle_number is not None else "",
             str(load_type) if load_type is not None else "",
+            str(ticket_number) if ticket_number is not None else "",
             str(amount_collected) if amount_collected is not None else "",
         ])
-    writer.writerow(["", "", "Total amount collected", f"{total_amount:.2f}"])
+    writer.writerow(["", "", "", "Total amount collected", f"{total_amount:.2f}"])
     return send_file(
         io.BytesIO(output.getvalue().encode("utf-8-sig")),
         mimetype="text/csv",
