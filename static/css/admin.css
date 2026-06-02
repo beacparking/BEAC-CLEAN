@@ -866,3 +866,178 @@ hr {
         font-size: 12px;
     }
 }
+
+/* Verify hub: Vehicle Excel + Monthly expenses */
+.verify-hub-nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 12px 24px 0;
+}
+
+.verify-hub-nav__link {
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--dash-text-muted);
+    text-decoration: none;
+    background: var(--dash-surface);
+    border: 1px solid var(--dash-border);
+}
+
+.verify-hub-nav__link:hover {
+    color: var(--dash-accent-blue);
+    border-color: var(--dash-accent-blue);
+}
+
+.verify-hub-nav__link--active {
+    color: #fff;
+    background: var(--dash-accent-blue);
+    border-color: var(--dash-accent-blue);
+}
+
+.success-msg {
+    color: #0d6b2e;
+    font-weight: 500;
+    margin: 0 0 12px;
+}
+
+.expense-month-form {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 12px;
+}
+
+.expense-export-link {
+    display: inline-flex;
+    align-items: center;
+    padding: 10px 16px;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--dash-accent-blue);
+    text-decoration: none;
+    border: 1px solid var(--dash-accent-blue);
+    border-radius: 8px;
+    background: var(--dash-surface);
+}
+
+.expense-export-link:hover {
+    background: var(--dash-accent-blue-dim);
+}
+
+.expense-summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.expense-summary-card {
+    background: var(--dash-surface);
+    border: 1px solid var(--dash-border);
+    border-radius: 10px;
+    padding: 14px 16px;
+    box-shadow: var(--dash-shadow-sm);
+}
+
+.expense-summary-card--total {
+    background: var(--dash-accent-blue-dim);
+    border-color: var(--dash-accent-blue);
+}
+
+.expense-summary-card__label {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--dash-text-muted);
+    margin-bottom: 6px;
+}
+
+.expense-summary-card__value {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--dash-text);
+}
+
+.expense-section-title {
+    font-size: 1.1rem;
+    margin: 0 0 16px;
+}
+
+.expense-form-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px 16px;
+}
+
+.expense-form-grid .field--wide {
+    grid-column: 1 / -1;
+}
+
+.expense-form-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 8px;
+}
+
+.expense-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+
+.expense-table th,
+.expense-table td {
+    padding: 10px 12px;
+    text-align: left;
+    border-bottom: 1px solid var(--dash-border);
+}
+
+.expense-table th {
+    font-size: 11px;
+    text-transform: uppercase;
+    color: var(--dash-text-muted);
+}
+
+.expense-table-actions {
+    white-space: nowrap;
+}
+
+.expense-edit-btn,
+.expense-delete-btn {
+    font-size: 13px;
+    padding: 6px 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    border: 1px solid var(--dash-border);
+    background: var(--dash-surface);
+}
+
+.expense-edit-btn {
+    color: var(--dash-accent-blue);
+    margin-right: 6px;
+}
+
+.expense-delete-btn {
+    color: #b42318;
+}
+
+.expense-delete-form {
+    display: inline;
+}
+
+.table-wrap {
+    overflow-x: auto;
+}
+
+@media (max-width: 600px) {
+    .expense-form-grid {
+        grid-template-columns: 1fr;
+    }
+}

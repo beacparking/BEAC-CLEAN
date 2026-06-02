@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <title>Download vehicle Excel</title>
+    <title>Verify area — BEA Parking</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
 </head>
 <body>
@@ -13,7 +13,7 @@
         <img src="{{ url_for('static', filename='images/right_logo.png') }}" alt="Bhutan Exporters Association" class="app-header-logo" width="44" height="44">
         <div class="app-title-group">
             <span class="app-title">BEA Parking</span>
-            <span class="app-subtitle">Verify / Excel export</span>
+            <span class="app-subtitle">Verify area</span>
         </div>
     </div>
     {% if logged_in %}
@@ -25,10 +25,9 @@
 
 <div class="page">
 
-<h1>Download vehicle Excel</h1>
-<p class="page-lead">Sign in to export serial, vehicle, load type, and amount for Bhutan and/or Indian vehicles (Excel file).</p>
-
 {% if not logged_in %}
+<h1>Verify area login</h1>
+<p class="page-lead">Sign in for vehicle Excel export and monthly expense tracking.</p>
 <div class="dash-card">
     <form method="POST" class="qr-form">
         <label>Username</label>
@@ -40,6 +39,15 @@
     </form>
 </div>
 {% else %}
+
+<nav class="verify-hub-nav" aria-label="Verify area">
+    <a href="{{ url_for('verify_export') }}" class="verify-hub-nav__link verify-hub-nav__link--active">Vehicle Excel</a>
+    <a href="{{ url_for('verify_expenses') }}" class="verify-hub-nav__link">Monthly expenses</a>
+</nav>
+
+<h1>Download vehicle Excel</h1>
+<p class="page-lead">Export serial, vehicle, load type, ticket number, and amount for Bhutan and/or Indian vehicles.</p>
+
 <div class="dash-card">
     <form method="GET" action="{{ url_for('verify_export_csv') }}" class="qr-form">
         <label>Select date</label>
@@ -51,8 +59,9 @@
         {% if error %}<p class="error">{{ error }}</p>{% endif %}
         <button type="submit">Download Excel</button>
     </form>
-    <p class="verify-csv-note">Excel file columns: Serial number, Vehicle number, Type of load, Amount.</p>
+    <p class="verify-csv-note">Columns: Serial number, Vehicle number, Type of load, Ticket number, Amount (plus total row).</p>
 </div>
+
 {% endif %}
 
 </div>

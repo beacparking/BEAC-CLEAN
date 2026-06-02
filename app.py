@@ -213,6 +213,58 @@ MEMBERS_PASSWORD = "member"
 EXPORT_USERNAME = "ADD"
 EXPORT_PASSWORD = "ADD123"
 
+EXPENSE_CATEGORIES = [
+    ("employee_salary", "Employee salary"),
+    ("electricity", "Electricity bill"),
+    ("wifi", "WiFi bill"),
+    ("software", "Software bill"),
+    ("maintenance", "Maintenance & purchase items"),
+    ("water_tank", "Water tank bill"),
+]
+EXPENSE_CATEGORY_KEYS = {k for k, _ in EXPENSE_CATEGORIES}
+EXPENSE_CATEGORY_LABELS = dict(EXPENSE_CATEGORIES)
+
+
+def _verify_area_logged_in():
+    return session.get("export_logged_in") or session.get("logged_in")
+
+
+def _parse_expense_month(raw):
+    """Accept YYYY-MM or YYYY-MM-DD; return first day of month."""
+    raw = (raw or "").strip()
+    if not raw:
+        return None
+    if len(raw) == 7:
+        raw += "-01"
+    try:
+        d = datetime.strptime(raw[:10], "%Y-%m-%d").date()
+        return d.replace(day=1)
+    except ValueError:
+        return None
+
+
+def _ensure_monthly_expense_table(cur):
+    cur.execute(
+        """
+        CREATE TABLE IF NOT EXISTS monthly_expense (
+            id SERIAL PRIMARY KEY,
+            expense_month DATE NOT NULL,
+            category VARCHAR(40) NOT NULL,
+            description TEXT,
+            amount NUMERIC(12, 2) NOT NULL,
+            notes TEXT,
+            created_at TIMESTAMP DEFAULT NOW()
+        )
+        """
+    )
+    cur.execute(
+        """
+        CREATE INDEX IF NOT EXISTS idx_monthly_expense_month
+        ON monthly_expense (expense_month)
+        """
+    )
+
+
 @app.route("/")
 def home():
     return redirect(url_for("login"))
@@ -1166,9 +1218,194 @@ def verify_export():
             session["export_logged_in"] = True
             return redirect(url_for("verify_export"))
         return render_template("verify.html", login_error="Invalid credentials")
-    if not session.get("export_logged_in"):
+    if not _verify_area_logged_in():
         return render_template("verify.html", login_error=request.args.get("error"))
     return render_template("verify.html", logged_in=True, error=request.args.get("error"))
+
+
+@app.route("/verify/expenses", methods=["GET", "POST"])
+def verify_expenses():
+    if not _verify_area_logged_in():
+        return redirect(url_for("verify_export"))
+
+    month = _parse_expense_month(request.args.get("month") or request.form.get("month"))
+    if month is None:
+        month = _thimphu_today().replace(day=1)
+
+    error = None
+    success = None
+
+    if request.method == "POST":
+        action = request.form.get("action", "add")
+
+        if action == "delete":
+            try:
+                eid = int(request.form.get("expense_id") or 0)
+            except ValueError:
+                eid = 0
+            if eid:
+                conn = get_db()
+                cur = conn.cursor()
+                _ensure_monthly_expense_table(cur)
+                cur.execute("DELETE FROM monthly_expense WHERE id = %s", (eid,))
+                conn.commit()
+                conn.close()
+                success = "Entry removed."
+            month = _parse_expense_month(request.form.get("month")) or month
+
+        elif action in ("add", "edit"):
+            category = (request.form.get("category") or "").strip()
+            description = (request.form.get("description") or "").strip()
+            notes = (request.form.get("notes") or "").strip()
+            amount_raw = (request.form.get("amount") or "").strip()
+            entry_month = _parse_expense_month(request.form.get("month")) or month
+
+            if category not in EXPENSE_CATEGORY_KEYS:
+                error = "Please select a valid expense category."
+            else:
+                try:
+                    amount = float(amount_raw)
+                    if amount < 0:
+                        raise ValueError
+                except (ValueError, TypeError):
+                    error = "Amount must be a valid number (0 or more)."
+
+            if not error:
+                conn = get_db()
+                cur = conn.cursor()
+                _ensure_monthly_expense_table(cur)
+                if action == "edit":
+                    try:
+                        eid = int(request.form.get("expense_id") or 0)
+                    except ValueError:
+                        eid = 0
+                    if not eid:
+                        error = "Invalid entry to update."
+                    else:
+                        cur.execute(
+                            """
+                            UPDATE monthly_expense
+                            SET expense_month = %s, category = %s, description = %s,
+                                amount = %s, notes = %s
+                            WHERE id = %s
+                            """,
+                            (entry_month, category, description or None, amount, notes or None, eid),
+                        )
+                        success = "Entry updated."
+                else:
+                    cur.execute(
+                        """
+                        INSERT INTO monthly_expense (
+                            expense_month, category, description, amount, notes
+                        )
+                        VALUES (%s, %s, %s, %s, %s)
+                        """,
+                        (entry_month, category, description or None, amount, notes or None),
+                    )
+                    success = "Expense added."
+                if not error:
+                    conn.commit()
+                conn.close()
+                month = entry_month
+
+    conn = get_db()
+    cur = conn.cursor()
+    _ensure_monthly_expense_table(cur)
+    cur.execute(
+        """
+        SELECT id, category, description, amount, notes, expense_month
+        FROM monthly_expense
+        WHERE expense_month = %s
+        ORDER BY category, id
+        """,
+        (month,),
+    )
+    rows = cur.fetchall()
+    conn.close()
+
+    entries = []
+    totals_by_category = {k: 0.0 for k, _ in EXPENSE_CATEGORIES}
+    for eid, cat, desc, amt, notes, _em in rows:
+        val = float(amt) if amt is not None else 0.0
+        if cat in totals_by_category:
+            totals_by_category[cat] += val
+        entries.append(
+            {
+                "id": eid,
+                "category": cat,
+                "category_label": EXPENSE_CATEGORY_LABELS.get(cat, cat),
+                "description": desc or "",
+                "amount": val,
+                "notes": notes or "",
+            }
+        )
+    grand_total = sum(totals_by_category.values())
+    category_summaries = [
+        {"key": k, "label": label, "total": totals_by_category[k]}
+        for k, label in EXPENSE_CATEGORIES
+    ]
+
+    return render_template(
+        "verify_expenses.html",
+        expense_month=month,
+        month_value=month.strftime("%Y-%m"),
+        entries=entries,
+        category_summaries=category_summaries,
+        grand_total=grand_total,
+        expense_categories=EXPENSE_CATEGORIES,
+        error=error,
+        success=success,
+    )
+
+
+@app.route("/verify/expenses/export")
+def verify_expenses_export():
+    if not _verify_area_logged_in():
+        return redirect(url_for("verify_export"))
+
+    month = _parse_expense_month(request.args.get("month"))
+    if month is None:
+        return redirect(url_for("verify_expenses"))
+
+    conn = get_db()
+    cur = conn.cursor()
+    _ensure_monthly_expense_table(cur)
+    cur.execute(
+        """
+        SELECT category, description, amount, notes
+        FROM monthly_expense
+        WHERE expense_month = %s
+        ORDER BY category, id
+        """,
+        (month,),
+    )
+    rows = cur.fetchall()
+    conn.close()
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(["Month", "Category", "Description", "Amount (Nu)", "Notes"])
+    total = 0.0
+    for cat, desc, amt, notes in rows:
+        val = float(amt) if amt is not None else 0.0
+        total += val
+        writer.writerow(
+            [
+                month.strftime("%Y-%m"),
+                EXPENSE_CATEGORY_LABELS.get(cat, cat),
+                desc or "",
+                f"{val:.2f}",
+                notes or "",
+            ]
+        )
+    writer.writerow(["", "", "Total", f"{total:.2f}", ""])
+
+    return send_file(
+        io.BytesIO(output.getvalue().encode("utf-8-sig")),
+        mimetype="text/csv",
+        as_attachment=True,
+        download_name=f"monthly_expenses_{month.strftime('%Y_%m')}.csv",
+    )
 
 
 # ======================

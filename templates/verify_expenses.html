@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <title>Monthly expenses — BEA Parking</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
+</head>
+<body>
+
+<header class="app-header app-header--simple">
+    <div class="app-header-left">
+        <img src="{{ url_for('static', filename='images/right_logo.png') }}" alt="Bhutan Exporters Association" class="app-header-logo" width="44" height="44">
+        <div class="app-title-group">
+            <span class="app-title">BEA Parking</span>
+            <span class="app-subtitle">Monthly expenses</span>
+        </div>
+    </div>
+    <a href="/logout" class="header-link">Log out</a>
+</header>
+
+<nav class="verify-hub-nav" aria-label="Verify area">
+    <a href="{{ url_for('verify_export') }}" class="verify-hub-nav__link">Vehicle Excel</a>
+    <a href="{{ url_for('verify_expenses') }}" class="verify-hub-nav__link verify-hub-nav__link--active">Monthly expenses</a>
+</nav>
+
+<div class="page">
+
+<h1>Monthly expenses</h1>
+<p class="page-lead">Track and monitor operating costs by month: salaries, utilities, software, maintenance, and water.</p>
+
+<div class="dash-card">
+    <form method="GET" class="qr-form expense-month-form" id="expense-month-form">
+        <label for="expense-month-picker">Month</label>
+        <input type="month" name="month" id="expense-month-picker" value="{{ month_value }}" required>
+        <button type="submit">Show month</button>
+        <a href="{{ url_for('verify_expenses_export', month=month_value) }}" class="expense-export-link">Download Excel</a>
+    </form>
+</div>
+
+{% if success %}<p class="success-msg">{{ success }}</p>{% endif %}
+{% if error %}<p class="error">{{ error }}</p>{% endif %}
+
+<div class="expense-summary-grid" role="group" aria-label="Totals by category">
+    {% for item in category_summaries %}
+    <div class="expense-summary-card">
+        <div class="expense-summary-card__label">{{ item.label }}</div>
+        <div class="expense-summary-card__value">{{ "%.2f"|format(item.total) }} Nu</div>
+    </div>
+    {% endfor %}
+    <div class="expense-summary-card expense-summary-card--total">
+        <div class="expense-summary-card__label">Total this month</div>
+        <div class="expense-summary-card__value">{{ "%.2f"|format(grand_total) }} Nu</div>
+    </div>
+</div>
+
+<div class="dash-card">
+    <h2 class="expense-section-title" id="expense-form-title">Add expense</h2>
+    <form method="POST" class="qr-form expense-entry-form" id="expense-entry-form">
+        <input type="hidden" name="month" id="expense-form-month" value="{{ month_value }}">
+        <input type="hidden" name="action" id="expense-form-action" value="add">
+        <input type="hidden" name="expense_id" id="expense-form-id" value="">
+
+        <div class="expense-form-grid">
+            <div class="field">
+                <label for="expense-category">Category</label>
+                <select name="category" id="expense-category" required>
+                    <option value="">Select category</option>
+                    {% for key, label in expense_categories %}
+                    <option value="{{ key }}">{{ label }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="field">
+                <label for="expense-amount">Amount (Nu)</label>
+                <input type="number" name="amount" id="expense-amount" min="0" step="0.01" required placeholder="0.00">
+            </div>
+            <div class="field field--wide">
+                <label for="expense-description">Description (optional)</label>
+                <input type="text" name="description" id="expense-description" placeholder="e.g. April salary, router repair">
+            </div>
+            <div class="field field--wide">
+                <label for="expense-notes">Notes (optional)</label>
+                <input type="text" name="notes" id="expense-notes" placeholder="Invoice ref, paid date, etc.">
+            </div>
+        </div>
+        <div class="expense-form-actions">
+            <button type="submit" id="expense-submit-btn">Add expense</button>
+            <button type="button" class="member-hide-btn--secondary" id="expense-cancel-edit" hidden>Cancel edit</button>
+        </div>
+    </form>
+</div>
+
+<div class="dash-card">
+    <h2 class="expense-section-title">Entries for {{ expense_month.strftime('%B %Y') }}</h2>
+    {% if entries %}
+    <div class="table-wrap">
+        <table class="data-table expense-table">
+            <thead>
+                <tr>
+                    <th>Category</th>
+                    <th>Description</th>
+                    <th>Amount (Nu)</th>
+                    <th>Notes</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for e in entries %}
+                <tr>
+                    <td>{{ e.category_label }}</td>
+                    <td>{{ e.description or '—' }}</td>
+                    <td>{{ "%.2f"|format(e.amount) }}</td>
+                    <td>{{ e.notes or '—' }}</td>
+                    <td class="expense-table-actions">
+                        <button type="button" class="expense-edit-btn"
+                                data-id="{{ e.id }}"
+                                data-category="{{ e.category }}"
+                                data-description="{{ e.description }}"
+                                data-amount="{{ e.amount }}"
+                                data-notes="{{ e.notes }}">Edit</button>
+                        <form method="POST" class="expense-delete-form" onsubmit="return confirm('Delete this expense?');">
+                            <input type="hidden" name="month" value="{{ month_value }}">
+                            <input type="hidden" name="action" value="delete">
+                            <input type="hidden" name="expense_id" value="{{ e.id }}">
+                            <button type="submit" class="expense-delete-btn">Delete</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% else %}
+    <p class="stats-note">No expenses recorded for this month yet. Use the form above to add one.</p>
+    {% endif %}
+</div>
+
+</div>
+
+<script>
+(function () {
+    var form = document.getElementById('expense-entry-form');
+    var title = document.getElementById('expense-form-title');
+    var actionInput = document.getElementById('expense-form-action');
+    var idInput = document.getElementById('expense-form-id');
+    var submitBtn = document.getElementById('expense-submit-btn');
+    var cancelBtn = document.getElementById('expense-cancel-edit');
+    var cat = document.getElementById('expense-category');
+    var amt = document.getElementById('expense-amount');
+    var desc = document.getElementById('expense-description');
+    var notes = document.getElementById('expense-notes');
+
+    function resetForm() {
+        actionInput.value = 'add';
+        idInput.value = '';
+        title.textContent = 'Add expense';
+        submitBtn.textContent = 'Add expense';
+        cancelBtn.hidden = true;
+        form.reset();
+        document.getElementById('expense-form-month').value = {{ month_value | tojson }};
+    }
+
+    document.querySelectorAll('.expense-edit-btn').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            actionInput.value = 'edit';
+            idInput.value = btn.getAttribute('data-id');
+            cat.value = btn.getAttribute('data-category');
+            amt.value = btn.getAttribute('data-amount');
+            desc.value = btn.getAttribute('data-description') || '';
+            notes.value = btn.getAttribute('data-notes') || '';
+            title.textContent = 'Edit expense';
+            submitBtn.textContent = 'Save changes';
+            cancelBtn.hidden = false;
+            form.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+    });
+
+    if (cancelBtn) cancelBtn.addEventListener('click', resetForm);
+})();
+</script>
+</body>
+</html>
