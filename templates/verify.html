@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-    <title>Verify area — BEA Parking</title>
+    <title>Monthly expenses login — BEA Parking</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/admin.css') }}">
 </head>
 <body>
@@ -13,21 +13,17 @@
         <img src="{{ url_for('static', filename='images/right_logo.png') }}" alt="Bhutan Exporters Association" class="app-header-logo" width="44" height="44">
         <div class="app-title-group">
             <span class="app-title">BEA Parking</span>
-            <span class="app-subtitle">Verify area</span>
+            <span class="app-subtitle">Monthly expenses</span>
         </div>
     </div>
-    {% if logged_in %}
-    <a href="/logout" class="header-link">Log out</a>
-    {% else %}
     <a href="{{ url_for('login') }}" class="header-link">Main login</a>
-    {% endif %}
 </header>
 
 <div class="page">
 
-{% if not logged_in %}
-<h1>Verify area login</h1>
-<p class="page-lead">Sign in for vehicle Excel export and monthly expense tracking.</p>
+<h1>Monthly expenses login</h1>
+<p class="page-lead">Sign in to track monthly operating costs (salary, utilities, software, maintenance, water).</p>
+
 <div class="dash-card">
     <form method="POST" class="qr-form">
         <label>Username</label>
@@ -38,31 +34,6 @@
         <button type="submit">Login</button>
     </form>
 </div>
-{% else %}
-
-<nav class="verify-hub-nav" aria-label="Verify area">
-    <a href="{{ url_for('verify_export') }}" class="verify-hub-nav__link verify-hub-nav__link--active">Vehicle Excel</a>
-    <a href="{{ url_for('verify_expenses') }}" class="verify-hub-nav__link">Monthly expenses</a>
-</nav>
-
-<h1>Download vehicle Excel</h1>
-<p class="page-lead">Export serial, vehicle, load type, ticket number, and amount for Bhutan and/or Indian vehicles.</p>
-
-<div class="dash-card">
-    <form method="GET" action="{{ url_for('verify_export_csv') }}" class="qr-form">
-        <label>Select date</label>
-        <input type="date" name="date" required>
-        <div class="checkbox-group">
-            <label><input type="checkbox" name="bhutan" value="1"> Bhutan vehicles</label>
-            <label><input type="checkbox" name="indian" value="1"> Indian vehicles</label>
-        </div>
-        {% if error %}<p class="error">{{ error }}</p>{% endif %}
-        <button type="submit">Download Excel</button>
-    </form>
-    <p class="verify-csv-note">Columns: Serial number, Vehicle number, Type of load, Ticket number, Amount (plus total row).</p>
-</div>
-
-{% endif %}
 
 </div>
 </body>

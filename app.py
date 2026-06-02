@@ -310,7 +310,7 @@ def login():
 
         if username == EXPORT_USERNAME and password == EXPORT_PASSWORD:
             session["export_logged_in"] = True
-            return redirect(url_for("verify_export"))
+            return redirect(url_for("verify_expenses"))
 
         return render_template("login.html", error="Invalid credentials")
 
@@ -1211,16 +1211,16 @@ def verify_export_csv():
 
 @app.route("/verify", methods=["GET", "POST"])
 def verify_export():
+    if _verify_area_logged_in():
+        return redirect(url_for("verify_expenses"))
     if request.method == "POST":
         username = request.form.get("username")
         password = request.form.get("password")
         if username == EXPORT_USERNAME and password == EXPORT_PASSWORD:
             session["export_logged_in"] = True
-            return redirect(url_for("verify_export"))
+            return redirect(url_for("verify_expenses"))
         return render_template("verify.html", login_error="Invalid credentials")
-    if not _verify_area_logged_in():
-        return render_template("verify.html", login_error=request.args.get("error"))
-    return render_template("verify.html", logged_in=True, error=request.args.get("error"))
+    return render_template("verify.html", login_error=request.args.get("error"))
 
 
 @app.route("/verify/expenses", methods=["GET", "POST"])
