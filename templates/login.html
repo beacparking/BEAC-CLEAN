@@ -5,12 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title>BEA Parking – Bhutan Exporters Association | Phuentsholing</title>
     <meta name="description" content="BEA Parking – Vehicle QR system for Bhutan Exporters Association, Phuentsholing Regional Chapter. Login for admin and vehicle statistics.">
-    <link rel="canonical" href="{{ request.url_root.rstrip('/') }}{{ url_for('login') }}">
+    <link rel="canonical" href="{{ public_base_url }}{{ url_for('login') }}">
     <!-- Open Graph / Google -->
     <meta property="og:type" content="website">
     <meta property="og:title" content="BEA Parking – Bhutan Exporters Association">
     <meta property="og:description" content="Vehicle QR system for Bhutan Exporters Association, Phuentsholing Regional Chapter.">
-    <meta property="og:url" content="{{ request.url_root.rstrip('/') }}{{ url_for('login') }}">
+    <meta property="og:url" content="{{ public_base_url }}{{ url_for('login') }}">
     <meta name="google-site-verification" content="8SIvsYorYGrqQCMNqY3V3L7WSVEsWj7z0kzliNVr_UI" />
     <link rel="stylesheet" href="{{ url_for('static', filename='css/login.css') }}">
 </head>

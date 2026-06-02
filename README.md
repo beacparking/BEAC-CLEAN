@@ -62,4 +62,4 @@ Web app for **Bhutan Exporters Association** (Phuentsholing) to manage parking/v
 3. In the Render Postgres **Connect** tab, run the `CREATE TABLE vehicle_qr (...)` SQL above (e.g. via psql).
 4. Open your Render service URL; log in with `admin`/`admin123` or `beac`/`beac`.
 
-QR codes will use the Render URL automatically (no `BASE_URL` needed).
+QR links, sitemap, and SEO use **`https://beac.com`** (or your `BASE_URL` for local testing, e.g. `http://YOUR_IP:5001`). If an old **`onrender.com`** value is still set in hosting env, it is **ignored** so the app keeps using `https://beac.com`.
