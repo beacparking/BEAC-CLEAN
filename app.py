@@ -41,6 +41,8 @@ def inject_public_base_url():
 # Local "today" for daily report, stats/members default date, etc.
 THIMPHU_TZ = ZoneInfo("Asia/Thimphu")
 
+WHEELER_CHOICES = (6, 10, 12, 14, 16, 18, 20, 22, 24, 26, 28, 30)
+
 
 def _thimphu_today():
     return datetime.now(THIMPHU_TZ).date()
@@ -124,6 +126,27 @@ def _amounts_visible_nu(detail_rows, hidden_ids):
         elif r[1] == "Indian":
             i_amt += amt
     return b_amt, i_amt
+
+
+def _ensure_vehicle_qr_wheeler_column(cur):
+    cur.execute(
+        """
+        ALTER TABLE vehicle_qr
+        ADD COLUMN IF NOT EXISTS wheeler SMALLINT
+        """
+    )
+
+
+def _parse_wheeler(raw):
+    if raw is None or str(raw).strip() == "":
+        return None, "Wheeler is required."
+    try:
+        val = int(raw)
+    except (TypeError, ValueError):
+        return None, "Wheeler must be a number."
+    if val not in WHEELER_CHOICES:
+        return None, "Invalid wheeler."
+    return val, None
 
 
 def _ensure_member_hide_override_table(cur):
@@ -336,6 +359,8 @@ def admin():
     today = _thimphu_today()
     conn = get_db()
     cur = conn.cursor()
+    _ensure_vehicle_qr_wheeler_column(cur)
+    conn.commit()
 
     # Daily counts
     cur.execute(
@@ -362,7 +387,7 @@ def admin():
     # Unpaid tokens (amount 0 or null) for today
     cur.execute(
         """
-        SELECT id, truck_type, daily_token, vehicle_number, generated_date, load_type
+        SELECT id, truck_type, daily_token, vehicle_number, generated_date, load_type, wheeler
         FROM vehicle_qr
         WHERE generated_date = %s
           AND (amount_collected IS NULL OR amount_collected::numeric <= 0)
@@ -375,7 +400,7 @@ def admin():
 
     unpaid_bhutanese = []
     unpaid_indian = []
-    for rec_id, t_type, token, vehicle, gen_date, load_type in unpaid_rows:
+    for rec_id, t_type, token, vehicle, gen_date, load_type, wheeler in unpaid_rows:
         item = {
             "id": rec_id,
             "token": token,
@@ -383,6 +408,7 @@ def admin():
             "truck_type": t_type,
             "date": gen_date,
             "load_type": load_type,
+            "wheeler": wheeler,
         }
         if t_type == "Bhutanese":
             unpaid_bhutanese.append(item)
@@ -396,6 +422,7 @@ def admin():
         selected_date = request.form.get("date")
         truck_type = request.form.get("truck_type")
         load_type = request.form.get("load_type")
+        wheeler, wheeler_err = _parse_wheeler(request.form.get("wheeler"))
         ticket_number = request.form.get("ticket_number")
         amount_collected = request.form.get("amount_collected")
 
@@ -417,6 +444,8 @@ def admin():
                 error = "Truck type is required to update."
             if not error and not load_type:
                 error = "Load type is required to update."
+            if not error and wheeler_err:
+                error = wheeler_err
             elif not error:
                 try:
                     if float(amount_collected) > 500:
@@ -448,16 +477,18 @@ def admin():
                         SET vehicle_number = %s,
                             truck_type = %s,
                             load_type = %s,
+                            wheeler = %s,
                             ticket_number = %s,
                             amount_collected = %s,
                             daily_token = %s
                         WHERE id = %s
-                        RETURNING vehicle_number, truck_type, load_type, daily_token, expires_date, ticket_number
+                        RETURNING vehicle_number, truck_type, load_type, wheeler, daily_token, expires_date, ticket_number
                         """,
                         (
                             vehicle,
                             truck_type,
                             load_type,
+                            wheeler,
                             ticket_number,
                             amount_collected,
                             daily_token_update,
@@ -469,12 +500,13 @@ def admin():
                     conn.close()
 
                     if row:
-                        vehicle, truck_type, load_type, daily_token, expires_date, ticket_number_row = row
+                        vehicle, truck_type, load_type, wheeler, daily_token, expires_date, ticket_number_row = row
                         qr = {
                             "token": daily_token,
                             "vehicle": vehicle,
                             "truck_type": truck_type,
                             "load_type": load_type,
+                            "wheeler": wheeler,
                             "amount_collected": amount_collected,
                             "ticket_number": ticket_number_row or "",
                             "expiry": expires_date.strftime("%d-%m-%Y"),
@@ -482,8 +514,17 @@ def admin():
                             "qr_url": None,
                         }
         else:
-            if not daily_token_input or not vehicle or not selected_date or not truck_type or not load_type or not amount_collected:
+            if (
+                not daily_token_input
+                or not vehicle
+                or not selected_date
+                or not truck_type
+                or not load_type
+                or not amount_collected
+            ):
                 error = "Token number, vehicle number, date, truck type, load type and amount are required"
+            elif wheeler_err:
+                error = wheeler_err
             else:
                 try:
                     daily_token = int(daily_token_input)
@@ -538,10 +579,10 @@ def admin():
                         # INSERT NEW QR
                         cur.execute("""
                             INSERT INTO vehicle_qr
-                            (vehicle_number, truck_type, load_type, ticket_number, amount_collected, generated_date, expires_date, daily_token)
-                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+                            (vehicle_number, truck_type, load_type, wheeler, ticket_number, amount_collected, generated_date, expires_date, daily_token)
+                            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
                             RETURNING id
-                        """, (vehicle, truck_type, load_type, ticket_number, amount_collected, generated_date, expires_date, daily_token))
+                        """, (vehicle, truck_type, load_type, wheeler, ticket_number, amount_collected, generated_date, expires_date, daily_token))
 
                         token_id = cur.fetchone()[0]
                         conn.commit()
@@ -567,11 +608,11 @@ def admin():
                         else:
                             cur.execute("""
                                 UPDATE vehicle_qr
-                                SET truck_type = %s, load_type = %s, ticket_number = %s,
+                                SET truck_type = %s, load_type = %s, wheeler = %s, ticket_number = %s,
                                     amount_collected = %s, daily_token = %s
                                 WHERE vehicle_number = %s AND generated_date = %s
                                 RETURNING id, daily_token, expires_date
-                            """, (truck_type, load_type, ticket_number, amount_collected, daily_token, vehicle, generated_date))
+                            """, (truck_type, load_type, wheeler, ticket_number, amount_collected, daily_token, vehicle, generated_date))
                             token_id, daily_token, expires_date = cur.fetchone()
                             conn.commit()
 
@@ -591,6 +632,7 @@ def admin():
                             "vehicle": vehicle,
                             "truck_type": truck_type,
                             "load_type": load_type,
+                            "wheeler": wheeler,
                             "amount_collected": amount_collected,
                             "ticket_number": ticket_number or "",
                             "expiry": expires_date.strftime("%d-%m-%Y"),
@@ -605,7 +647,7 @@ def admin():
     cur.execute(
         """
         SELECT daily_token, vehicle_number, generated_date, truck_type,
-               load_type, ticket_number, amount_collected
+               load_type, wheeler, ticket_number, amount_collected
         FROM vehicle_qr
         WHERE generated_date = %s
         ORDER BY id DESC
@@ -622,8 +664,9 @@ def admin():
             "date": r[2],
             "truck_type": r[3],
             "load_type": r[4],
-            "ticket_number": r[5],
-            "amount_collected": r[6],
+            "wheeler": r[5],
+            "ticket_number": r[6],
+            "amount_collected": r[7],
         }
         for r in last_rows
     ]
@@ -642,7 +685,7 @@ def admin():
             search_mode = "token"
             cur.execute(
                 """
-                SELECT id, daily_token, ticket_number, generated_date, amount_collected, vehicle_number, truck_type, load_type
+                SELECT id, daily_token, ticket_number, generated_date, amount_collected, vehicle_number, truck_type, load_type, wheeler
                 FROM vehicle_qr
                 WHERE daily_token = %s AND generated_date = %s
                 ORDER BY daily_token DESC
@@ -653,7 +696,7 @@ def admin():
             search_mode = "vehicle"
             cur.execute(
                 """
-                SELECT id, daily_token, ticket_number, generated_date, amount_collected, vehicle_number, truck_type, load_type
+                SELECT id, daily_token, ticket_number, generated_date, amount_collected, vehicle_number, truck_type, load_type, wheeler
                 FROM vehicle_qr
                 WHERE vehicle_number = %s
                 ORDER BY generated_date DESC, daily_token DESC
@@ -674,7 +717,7 @@ def admin():
     if unpaid_lookup_date is not None:
         cur.execute(
             """
-            SELECT id, truck_type, daily_token, vehicle_number, generated_date, load_type
+            SELECT id, truck_type, daily_token, vehicle_number, generated_date, load_type, wheeler
             FROM vehicle_qr
             WHERE generated_date = %s
               AND (amount_collected IS NULL OR amount_collected::numeric <= 0)
@@ -682,7 +725,7 @@ def admin():
             """,
             (unpaid_lookup_date,),
         )
-        for rec_id, t_type, token, vehicle, gen_date, load_type in cur.fetchall():
+        for rec_id, t_type, token, vehicle, gen_date, load_type, wheeler in cur.fetchall():
             item = {
                 "id": rec_id,
                 "token": token,
@@ -690,6 +733,7 @@ def admin():
                 "truck_type": t_type,
                 "date": gen_date,
                 "load_type": load_type,
+                "wheeler": wheeler,
             }
             if t_type == "Bhutanese":
                 unpaid_date_bhutanese.append(item)
@@ -1417,7 +1461,7 @@ def verify_qr(token_id):
     cur = conn.cursor()
 
     cur.execute("""
-        SELECT vehicle_number, truck_type, load_type, amount_collected, expires_date
+        SELECT vehicle_number, truck_type, load_type, wheeler, amount_collected, expires_date
         FROM vehicle_qr
         WHERE id = %s
     """, (token_id,))
@@ -1427,7 +1471,7 @@ def verify_qr(token_id):
     if not row:
         return render_template("verify_qr.html", status="INVALID")
 
-    vehicle, truck_type, load_type, amount_collected, expiry = row
+    vehicle, truck_type, load_type, wheeler, amount_collected, expiry = row
     today = date.today()
 
     status = "VALID" if today <= expiry else "EXPIRED"
@@ -1438,6 +1482,7 @@ def verify_qr(token_id):
         vehicle=vehicle,
         truck_type=truck_type,
         load_type=load_type,
+        wheeler=wheeler,
         amount_collected=amount_collected,
         expiry=expiry.strftime("%d-%m-%Y")
     )

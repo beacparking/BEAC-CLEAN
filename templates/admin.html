@@ -59,6 +59,24 @@
         </select>
     </div>
     <div class="field">
+        <label>Wheeler</label>
+        <select name="wheeler" required>
+            <option value="">Select Wheeler</option>
+            <option value="6">6</option>
+            <option value="10">10</option>
+            <option value="12">12</option>
+            <option value="14">14</option>
+            <option value="16">16</option>
+            <option value="18">18</option>
+            <option value="20">20</option>
+            <option value="22">22</option>
+            <option value="24">24</option>
+            <option value="26">26</option>
+            <option value="28">28</option>
+            <option value="30">30</option>
+        </select>
+    </div>
+    <div class="field">
         <label>Load type</label>
         <select name="load_type" required>
             <option value="">Select Load Type</option>
@@ -93,6 +111,7 @@
     <p><b>Token:</b> {{ qr.token }}</p>
     <p><b>Vehicle:</b> {{ qr.vehicle }}</p>
     <p><b>Truck Type:</b> {{ qr.truck_type }}</p>
+    <p><b>Wheeler:</b> {{ qr.wheeler|default('', true) }}</p>
     <p><b>Load Type:</b> {{ qr.load_type }}</p>
     <p><b>Amount Collected:</b> {{ qr.amount_collected }}</p>
     <p><b>Ticket number:</b> {{ qr.ticket_number|default('', true) }}</p>
@@ -117,6 +136,7 @@
                 <th>Date</th>
                 <th>Vehicle</th>
                 <th>Truck type</th>
+                <th>Wheeler</th>
                 <th>Load type</th>
                 <th>Ticket number</th>
                 <th>Amount</th>
@@ -130,6 +150,7 @@
                 <td>{{ r.date.strftime('%d-%m-%Y') }}</td>
                 <td>{{ r.vehicle }}</td>
                 <td>{{ r.truck_type }}</td>
+                <td>{{ r.wheeler|default('', true) }}</td>
                 <td>{{ r.load_type }}</td>
                 <td>{{ r.ticket_number }}</td>
                 <td>{{ '%.2f'|format(r.amount_collected or 0) }}</td>
@@ -163,6 +184,7 @@
                         <th>Ticket number</th>
                         <th>Vehicle</th>
                         <th>Truck type</th>
+                        <th>Wheeler</th>
                         <th>Load type</th>
                         <th>Date</th>
                         <th>Amount</th>
@@ -179,11 +201,13 @@
                         data-amount="{{ r[4] }}"
                         data-vehicle="{{ r[5] }}"
                         data-truck="{{ r[6] }}"
-                        data-load="{{ r[7] }}">
+                        data-load="{{ r[7] }}"
+                        data-wheeler="{{ r[8]|default('', true) }}">
                         <td>{{ r[1] }}</td>
                         <td>{{ r[2] }}</td>
                         <td>{{ r[5] }}</td>
                         <td>{{ r[6] }}</td>
+                        <td>{{ r[8]|default('', true) }}</td>
                         <td>{{ r[7] }}</td>
                         <td>{{ r[3].strftime('%d-%m-%Y') }}</td>
                         <td>{{ '%.2f'|format(r[4] or 0) }}</td>
@@ -242,7 +266,8 @@
                 data-vehicle="{{ item.vehicle }}"
                 data-truck="{{ item.truck_type }}"
                 data-date="{{ item.date.strftime('%Y-%m-%d') }}"
-                data-load="{{ item.load_type }}">
+                data-load="{{ item.load_type }}"
+                data-wheeler="{{ item.wheeler|default('', true) }}">
                 Token {{ item.token }} — {{ item.vehicle }}{% if item.load_type %} ({{ item.load_type }}){% endif %}
             </li>
             {% endfor %}
@@ -262,7 +287,8 @@
                 data-vehicle="{{ item.vehicle }}"
                 data-truck="{{ item.truck_type }}"
                 data-date="{{ item.date.strftime('%Y-%m-%d') }}"
-                data-load="{{ item.load_type }}">
+                data-load="{{ item.load_type }}"
+                data-wheeler="{{ item.wheeler|default('', true) }}">
                 Token {{ item.token }} — {{ item.vehicle }}{% if item.load_type %} ({{ item.load_type }}){% endif %}
             </li>
             {% endfor %}
@@ -308,7 +334,8 @@
                         data-vehicle="{{ item.vehicle }}"
                         data-truck="{{ item.truck_type }}"
                         data-date="{{ item.date }}"
-                        data-load="{{ item.load_type }}">
+                        data-load="{{ item.load_type }}"
+                        data-wheeler="{{ item.wheeler|default('', true) }}">
                         Token {{ item.token }} — {{ item.vehicle }}
                     </li>
                 {% endfor %}
@@ -328,7 +355,8 @@
                         data-vehicle="{{ item.vehicle }}"
                         data-truck="{{ item.truck_type }}"
                         data-date="{{ item.date }}"
-                        data-load="{{ item.load_type }}">
+                        data-load="{{ item.load_type }}"
+                        data-wheeler="{{ item.wheeler|default('', true) }}">
                         Token {{ item.token }} — {{ item.vehicle }}
                     </li>
                 {% endfor %}
@@ -416,6 +444,7 @@
         const vehicleInput = document.querySelector('input[name="vehicle"]');
         const dateInput = document.querySelector('input[name="date"]');
         const truckSelect = document.querySelector('select[name="truck_type"]');
+        const wheelerSelect = document.querySelector('select[name="wheeler"]');
         const loadSelect = document.querySelector('select[name="load_type"]');
         const tokenInput = document.querySelector('input[name="daily_token"]');
         const ticketInput = document.querySelector('input[name="ticket_number"]');
@@ -430,6 +459,7 @@
             const truck = item.getAttribute('data-truck');
             const date = item.getAttribute('data-date');
             const load = item.getAttribute('data-load');
+            const wheeler = item.getAttribute('data-wheeler');
             const token = item.getAttribute('data-token');
             const ticket = item.getAttribute('data-ticket');
             const amount = item.getAttribute('data-amount');
@@ -438,6 +468,7 @@
             if (vehicleInput) vehicleInput.value = vehicle || '';
             if (dateInput && date) dateInput.value = date;
             if (truckSelect) truckSelect.value = truck || '';
+            if (wheelerSelect) wheelerSelect.value = wheeler || '';
             if (loadSelect) loadSelect.value = load || '';
             if (tokenInput && token) tokenInput.value = token;
             if (ticketInput) ticketInput.value = ticket || '';
