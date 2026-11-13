@@ -1080,7 +1080,7 @@ def stats_export():
         cur = conn.cursor()
         cur.execute(
             """
-            SELECT id, truck_type, daily_token, load_type, amount_collected, vehicle_number, ticket_number
+            SELECT id, truck_type, daily_token, load_type, amount_collected, vehicle_number, wheeler, ticket_number
             FROM vehicle_qr
             WHERE generated_date = %s
             ORDER BY truck_type, daily_token
@@ -1100,13 +1100,14 @@ def stats_export():
         )
         rows_out = []
         for r in bhutan_out + indian_out:
-            ticket = r[6] if len(r) > 6 and r[6] is not None else ""
-            rows_out.append((r[2], r[5], r[1], r[3], r[4], ticket))
+            ticket = r[7] if len(r) > 7 and r[7] is not None else ""
+            wheeler = r[6] if len(r) > 6 and r[6] is not None else ""
+            rows_out.append((r[2], r[5], r[1], wheeler, r[3], r[4], ticket))
 
         output = io.StringIO()
         writer = csv.writer(output)
         writer.writerow(
-            ["Token", "Vehicle", "Truck Type", "Load Type", "Amount", "Ticket Number"]
+            ["Token", "Vehicle", "Truck Type", "Wheeler", "Load Type", "Amount", "Ticket Number"]
         )
         for r in rows_out:
             writer.writerow(r)
@@ -1121,7 +1122,7 @@ def stats_export():
     conn = get_db()
     cur = conn.cursor()
     query = """
-        SELECT daily_token, vehicle_number, truck_type, load_type, ticket_number, amount_collected, generated_date, expires_date
+        SELECT daily_token, vehicle_number, truck_type, wheeler, load_type, ticket_number, amount_collected, generated_date, expires_date
         FROM vehicle_qr
         WHERE generated_date = %s
     """
@@ -1190,7 +1191,7 @@ def verify_export_csv():
     if bhutan and indian:
         cur.execute(
             """
-            SELECT id, truck_type, daily_token, vehicle_number, load_type, ticket_number, amount_collected
+            SELECT id, truck_type, daily_token, vehicle_number, load_type, wheeler, ticket_number, amount_collected
             FROM vehicle_qr
             WHERE generated_date = %s
               AND truck_type IN ('Bhutanese', 'Indian')
@@ -1201,7 +1202,7 @@ def verify_export_csv():
     elif bhutan:
         cur.execute(
             """
-            SELECT id, truck_type, daily_token, vehicle_number, load_type, ticket_number, amount_collected
+            SELECT id, truck_type, daily_token, vehicle_number, load_type, wheeler, ticket_number, amount_collected
             FROM vehicle_qr
             WHERE generated_date = %s AND truck_type = 'Bhutanese'
             ORDER BY daily_token
@@ -1211,7 +1212,7 @@ def verify_export_csv():
     else:
         cur.execute(
             """
-            SELECT id, truck_type, daily_token, vehicle_number, load_type, ticket_number, amount_collected
+            SELECT id, truck_type, daily_token, vehicle_number, load_type, wheeler, ticket_number, amount_collected
             FROM vehicle_qr
             WHERE generated_date = %s AND truck_type = 'Indian'
             ORDER BY daily_token
@@ -1223,28 +1224,31 @@ def verify_export_csv():
     conn.close()
 
     rows = []
-    for rid, t_type, _tok, vehicle_number, load_type, ticket_number, amount_collected in all_rows:
+    for rid, t_type, _tok, vehicle_number, load_type, wheeler, ticket_number, amount_collected in all_rows:
         if rid in hidden_ids:
             continue
-        rows.append((vehicle_number, load_type, ticket_number, amount_collected))
+        rows.append((vehicle_number, wheeler, load_type, ticket_number, amount_collected))
 
     output = io.StringIO()
     writer = csv.writer(output)
     # Serial number instead of token number
-    writer.writerow(["Serial number", "Vehicle number", "Type of load", "Ticket number", "Amount"])
+    writer.writerow(
+        ["Serial number", "Vehicle number", "Wheeler", "Type of load", "Ticket number", "Amount"]
+    )
     total_amount = 0.0
     for idx, r in enumerate(rows, start=1):
-        vehicle_number, load_type, ticket_number, amount_collected = r
+        vehicle_number, wheeler, load_type, ticket_number, amount_collected = r
         if amount_collected is not None:
             total_amount += float(amount_collected)
         writer.writerow([
             str(idx),
             str(vehicle_number) if vehicle_number is not None else "",
+            str(wheeler) if wheeler is not None else "",
             str(load_type) if load_type is not None else "",
             str(ticket_number) if ticket_number is not None else "",
             str(amount_collected) if amount_collected is not None else "",
         ])
-    writer.writerow(["", "", "", "Total amount collected", f"{total_amount:.2f}"])
+    writer.writerow(["", "", "", "", "Total amount collected", f"{total_amount:.2f}"])
     return send_file(
         io.BytesIO(output.getvalue().encode("utf-8-sig")),
         mimetype="text/csv",
@@ -1493,11 +1497,21 @@ def verify_qr(token_id):
 def export_csv(rows, filename):
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(["Daily Token", "Vehicle", "Truck Type", "Load Type", "Ticket Number", "Amount Collected"])
+    writer.writerow(
+        [
+            "Daily Token",
+            "Vehicle",
+            "Truck Type",
+            "Wheeler",
+            "Load Type",
+            "Ticket Number",
+            "Amount Collected",
+        ]
+    )
 
     for r in rows:
-        # Ensure each value is written as string so token numbers (e.g. 1) always show
-        row = r[:6]
+        # daily_token, vehicle, truck_type, wheeler, load_type, ticket_number, amount[, dates...]
+        row = r[:7]
         writer.writerow([str(x) if x is not None else "" for x in row])
 
     return send_file(
@@ -1521,7 +1535,7 @@ def export_day():
     conn = get_db()
     cur = conn.cursor()
     query = """
-        SELECT daily_token, vehicle_number, truck_type, load_type, ticket_number, amount_collected, generated_date, expires_date
+        SELECT daily_token, vehicle_number, truck_type, wheeler, load_type, ticket_number, amount_collected, generated_date, expires_date
         FROM vehicle_qr
         WHERE generated_date = %s
     """
@@ -1555,7 +1569,7 @@ def admin_export_unpaid():
     cur = conn.cursor()
     cur.execute(
         """
-        SELECT truck_type, daily_token, vehicle_number, load_type, generated_date
+        SELECT truck_type, daily_token, vehicle_number, wheeler, load_type, generated_date
         FROM vehicle_qr
         WHERE generated_date = %s
           AND (amount_collected IS NULL OR amount_collected::numeric <= 0)
@@ -1568,14 +1582,15 @@ def admin_export_unpaid():
 
     output = io.StringIO()
     writer = csv.writer(output)
-    writer.writerow(["Date", "Truck type", "Token", "Vehicle number", "Load type", "Status"])
-    for t_type, token, vehicle, load_type, gen_date in rows:
+    writer.writerow(["Date", "Truck type", "Token", "Vehicle number", "Wheeler", "Load type", "Status"])
+    for t_type, token, vehicle, wheeler, load_type, gen_date in rows:
         writer.writerow(
             [
                 gen_date.isoformat() if gen_date else "",
                 t_type or "",
                 token if token is not None else "",
                 vehicle if vehicle is not None else "",
+                wheeler if wheeler is not None else "",
                 load_type if load_type is not None else "",
                 "Unpaid",
             ]
@@ -1602,7 +1617,7 @@ def export_week():
     conn = get_db()
     cur = conn.cursor()
     query = """
-        SELECT daily_token, vehicle_number, truck_type, load_type, ticket_number, amount_collected, generated_date, expires_date
+        SELECT daily_token, vehicle_number, truck_type, wheeler, load_type, ticket_number, amount_collected, generated_date, expires_date
         FROM vehicle_qr
         WHERE generated_date BETWEEN %s AND %s
     """
@@ -1640,7 +1655,7 @@ def export_month():
     conn = get_db()
     cur = conn.cursor()
     query = """
-        SELECT daily_token, vehicle_number, truck_type, load_type, amount_collected, generated_date, expires_date
+        SELECT daily_token, vehicle_number, truck_type, wheeler, load_type, ticket_number, amount_collected, generated_date, expires_date
         FROM vehicle_qr
         WHERE generated_date >= %s AND generated_date < %s
     """
